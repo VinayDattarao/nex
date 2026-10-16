@@ -185,27 +185,7 @@
   <div class="border-t border-white/10 py-5 text-center text-xs text-cream/35">© 2026 NEXORA. Client demonstration build — not for production use.</div>
 </footer>
 
-<!-- ==================== DEMO CONTROLS ==================== -->
-<div id="demo-controls" class="flex items-center gap-2.5">
-  <div class="relative" id="demo-switcher">
-    <button id="demo-switcher-btn" class="btn btn-sm text-white flex items-center gap-2" onclick="toggleDemoMenu()">
-      <i data-lucide="sparkles" class="w-3.5 h-3.5 icon-spin-slow"></i>
-      Demo mode: <span id="demo-role-label" class="font-semibold capitalize">{{ demo_role if demo_role != 'guest' else 'Visitor' }}</span>
-      <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
-    </button>
-    <div id="demo-menu" class="hidden absolute bottom-12 left-0 w-52 bg-white border border-grey-line rounded-2xl shadow-xl p-1.5">
-      <button onclick="setDemoRole('guest')" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><span class="icon-badge icon-badge-amber w-7 h-7"><i data-lucide="eye" class="w-3.5 h-3.5"></i></span>Visitor</button>
-      <button onclick="setDemoRole('seeker')" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><span class="icon-badge icon-badge-indigo w-7 h-7"><i data-lucide="user" class="w-3.5 h-3.5"></i></span>Job Seeker</button>
-      <button onclick="setDemoRole('employer')" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><span class="icon-badge icon-badge-mint w-7 h-7"><i data-lucide="briefcase" class="w-3.5 h-3.5"></i></span>Employer</button>
-      <button onclick="setDemoRole('admin')" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><span class="icon-badge icon-badge-rose w-7 h-7"><i data-lucide="shield" class="w-3.5 h-3.5"></i></span>Admin</button>
-    </div>
-  </div>
-  {% if demo_role == 'guest' or not demo_role %}
-  <button id="tour-trigger-btn" class="btn btn-sm flex items-center gap-2" onclick="startWebsiteTour()">
-    <i data-lucide="compass" class="w-3.5 h-3.5 icon-spin-slow"></i> Website Tour
-  </button>
-  {% endif %}
-</div>
+
 
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 <script src="{{ url_for('static', filename='js/tour.js') }}"></script>

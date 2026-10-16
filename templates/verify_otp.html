@@ -82,14 +82,6 @@
         </div>
       </form>
 
-      <!-- Auto-fill demo button for test ease -->
-      {% if demo_otp %}
-      <div class="mt-4 text-center">
-        <button type="button" onclick="autoFillOtp('{{ demo_otp }}')" class="text-xs text-indigo font-semibold hover:text-indigo-dark inline-flex items-center gap-1">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 1-Click Auto Fill Demo Code ({{ demo_otp }})
-        </button>
-      </div>
-      {% endif %}
 
       <div class="mt-8 pt-6 border-t border-grey-line text-center text-sm text-ink/60 space-y-2">
         <p>Didn't receive the SMS code?</p>
@@ -164,14 +156,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
-function autoFillOtp(code) {
-  const digits = document.querySelectorAll('.otp-digit');
-  for (let i = 0; i < digits.length; i++) {
-    digits[i].value = code[i] || '';
-  }
-  document.getElementById('combined-otp').value = code;
-  if (digits[5]) digits[5].focus();
-}
 </script>
 
 {% endblock %}

@@ -239,11 +239,6 @@ class NexoraWorkflowTests(unittest.TestCase):
             self.assertEqual(sess.get('demo_role'), 'seeker')
             self.assertEqual(sess.get('user_name'), 'Maya Lin')
 
-        # 4. Instant 1-click Google demo login
-        res_demo = self.client.get('/api/auth/google-demo')
-        self.assertEqual(res_demo.status_code, 302)
-        self.assertIn('/dashboard/seeker', res_demo.headers['Location'])
-
     def test_11_sms_forgot_password_and_reset_flow(self):
         """Test complete SMS OTP Forgot Password flow: request, OTP verification, password update, and login."""
         # Target user: Jordan Reyes

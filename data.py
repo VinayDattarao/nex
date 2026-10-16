@@ -282,11 +282,52 @@ def get_user_by_email(email):
 
 
 def authenticate_user(email, password):
-    user = get_user_by_email(email)
-    if not user:
+    if not email or not password:
         return None
-    if check_password_hash(user["password_hash"], password):
+    email_clean = email.strip().lower()
+    user = get_user_by_email(email_clean)
+    if user and check_password_hash(user.get("password_hash", ""), password):
         return user
+
+    # Real Supabase Auth verification
+    try:
+        import os, requests
+        supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+        supabase_anon_key = os.getenv("SUPABASE_ANON_KEY", "")
+        if supabase_url and supabase_anon_key:
+            res = requests.post(
+                f"{supabase_url}/auth/v1/token?grant_type=password",
+                headers={"apikey": supabase_anon_key, "Content-Type": "application/json"},
+                json={"email": email_clean, "password": password},
+                timeout=5
+            )
+            if res.status_code == 200:
+                data_json = res.json()
+                sb_user = data_json.get("user", {})
+                meta = sb_user.get("user_metadata", {})
+                role = meta.get("role", "seeker")
+                name = meta.get("name") or meta.get("full_name") or email_clean.split("@")[0].capitalize()
+                company = meta.get("company_name", "")
+                location = meta.get("company_location", "")
+                phone = meta.get("contact_phone", "")
+
+                if not user:
+                    user, _ = create_user(
+                        name=name,
+                        email=email_clean,
+                        password=password,
+                        role="employer" if role in ("employer", "both") else "seeker",
+                        company=company,
+                        location=location
+                    )
+                else:
+                    user["password_hash"] = generate_password_hash(password)
+                if user and phone:
+                    user["phone"] = phone
+                return user
+    except Exception as e:
+        print("[Supabase Auth Error]:", e)
+
     return None
 
 
@@ -330,6 +371,30 @@ def create_user(name, email, password, role="seeker", company="", location="", t
         }
 
     USERS[user_id] = user
+
+    # Register with Supabase Auth backend if configured
+    try:
+        import os, requests
+        supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+        supabase_anon_key = os.getenv("SUPABASE_ANON_KEY", "")
+        if supabase_url and supabase_anon_key:
+            requests.post(
+                f"{supabase_url}/auth/v1/signup",
+                headers={"apikey": supabase_anon_key, "Content-Type": "application/json"},
+                json={
+                    "email": email_clean,
+                    "password": password,
+                    "data": {
+                        "name": name.strip(),
+                        "role": role,
+                        "company_name": company if role == "employer" else "",
+                    }
+                },
+                timeout=5
+            )
+    except Exception:
+        pass
+
     return user, None
 
 
@@ -375,21 +440,60 @@ import secrets
 def find_or_create_google_user(email, name="", avatar=None, role="seeker"):
     if not email:
         return None
-    user = get_user_by_email(email)
+    email_clean = email.strip().lower()
+    user = get_user_by_email(email_clean)
     if user:
         if avatar and not user.get("avatar"):
             user["avatar"] = avatar
         return user
-    
-    # Create new account with Google OAuth profile
+
+    # Check for existing Supabase metadata
+    company = ""
+    location = ""
+    phone = ""
+    detected_role = role
+    try:
+        import os, requests
+        supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+        supabase_sec = os.getenv("SUPABASE_SECRET_KEY", "")
+        if supabase_url and supabase_sec:
+            r = requests.get(
+                f"{supabase_url}/auth/v1/admin/users",
+                headers={"apikey": supabase_sec, "Authorization": f"Bearer {supabase_sec}"},
+                timeout=5
+            )
+            if r.status_code == 200:
+                for u in r.json().get("users", []):
+                    if u.get("email", "").lower() == email_clean:
+                        meta = u.get("user_metadata", {})
+                        if not name:
+                            name = meta.get("full_name") or meta.get("name", "")
+                        if not avatar:
+                            avatar = meta.get("avatar_url") or meta.get("picture", "")
+                        company = meta.get("company_name", "")
+                        location = meta.get("company_location", "")
+                        phone = meta.get("contact_phone", "")
+                        meta_role = meta.get("role", "")
+                        if meta_role in ("employer", "both"):
+                            detected_role = "employer"
+                        break
+    except Exception as e:
+        print("[Supabase admin lookup error]:", e)
+
+    # Create user with authentic profile
     user, _ = create_user(
-        name=name or email.split("@")[0].capitalize(),
-        email=email,
+        name=name or email_clean.split("@")[0].capitalize(),
+        email=email_clean,
         password=secrets.token_hex(16),
-        role=role
+        role=detected_role,
+        company=company,
+        location=location
     )
-    if user and avatar:
-        user["avatar"] = avatar
+    if user:
+        if avatar:
+            user["avatar"] = avatar
+        if phone:
+            user["phone"] = phone
     return user
 
 

@@ -25,15 +25,7 @@ app.secret_key = os.getenv("SECRET_KEY", "nexora-secure-session-secret-key-2026"
 def current_user():
     user_id = session.get("user_id")
     if user_id:
-        u = data.get_user_by_id(user_id)
-        if u:
-            return u
-    # Fallback to demo profiles if switched via demo switcher
-    role = session.get("demo_role")
-    if role == "seeker":
-        return data.get_user_by_id(1)
-    elif role == "employer":
-        return data.get_user_by_id(2)
+        return data.get_user_by_id(user_id)
     return None
 
 
@@ -41,7 +33,7 @@ def current_role():
     user = current_user()
     if user:
         return user.get("role", "guest")
-    return session.get("demo_role", "guest")
+    return "guest"
 
 
 @app.context_processor
@@ -241,25 +233,6 @@ def api_auth_google_callback():
     return jsonify({"ok": True, "redirect": target, "user": {"id": user["id"], "name": user["name"], "email": user["email"], "role": user["role"]}})
 
 
-@app.route("/api/auth/google-demo")
-def api_auth_google_demo():
-    email = "alex.chen.nexora@gmail.com"
-    name = "Alex Chen"
-    avatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-    role = request.args.get("role") or session.get("oauth_role") or "seeker"
-    redirect_url = request.args.get("redirect") or ""
-
-    user = data.find_or_create_google_user(email=email, name=name, avatar=avatar, role=role)
-    session["user_id"] = user["id"]
-    session["demo_role"] = user["role"]
-    session["user_name"] = user["name"]
-
-    if role == "employer":
-        target = redirect_url if (redirect_url and redirect_url.startswith("/") and not redirect_url.startswith("//")) else url_for("employer_dashboard")
-    else:
-        target = redirect_url if (redirect_url and redirect_url.startswith("/") and not redirect_url.startswith("//")) else url_for("seeker_dashboard")
-    return redirect(target)
-
 
 # ----------------------------------------------- SMS FORGOT PASSWORD --
 @app.route("/forgot-password", methods=["GET", "POST"])
@@ -305,9 +278,7 @@ def verify_otp():
                                    error="Please enter the 6-digit code received via SMS."), 400
 
         is_valid = False
-        if submitted_otp == "123456":
-            is_valid = True
-        elif stored_entry and stored_entry["code"] == submitted_otp:
+        if stored_entry and stored_entry["code"] == submitted_otp:
             if time.time() <= stored_entry["expires"]:
                 is_valid = True
             else:
