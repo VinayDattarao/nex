@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Verify SMS Code — NEXORA{% endblock %}
+{% block content %}
+
+<div class="min-h-[calc(100vh-16rem)] flex items-center justify-center px-5 py-12">
+  <div class="w-full max-w-md">
+
+    <!-- SMS Dispatch Toast/Banner Simulation -->
+    {% if demo_otp %}
+    <div id="sms-toast-banner" class="mb-6 p-4 rounded-2xl bg-indigo/15 border border-indigo/30 text-cream flex items-start gap-3.5 shadow-xl animate-bounce-subtle">
+      <span class="icon-badge icon-badge-indigo w-9 h-9 shrink-0 mt-0.5">
+        <i data-lucide="message-square" class="w-4 h-4 text-indigo"></i>
+      </span>
+      <div class="text-sm">
+        <div class="flex items-center gap-2">
+          <span class="font-display font-semibold text-white text-base">Incoming SMS Message</span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-mint/20 text-mint uppercase">Delivered</span>
+        </div>
+        <p class="text-cream/90 mt-1 font-mono text-xs bg-navy/60 p-2.5 rounded-xl border border-white/10">
+          "NEXORA Security: Your verification code is <strong class="text-mint text-sm tracking-wider font-bold">{{ demo_otp }}</strong>. Valid for 10 minutes."
+        </p>
+        <p class="text-[11px] text-cream/50 mt-1">Dispatched to {{ identifier }} via SMS Gateway.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="mb-6 p-4 rounded-2xl bg-rose/15 border border-rose/30 text-cream flex items-start gap-3.5 shadow-lg">
+      <span class="icon-badge icon-badge-rose w-8 h-8 shrink-0 mt-0.5">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-rose"></i>
+      </span>
+      <div class="text-sm">
+        <p class="font-display font-semibold text-rose text-base leading-snug">Verification Failed</p>
+        <p class="text-cream/80 mt-1">{{ error }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if resent %}
+    <div class="mb-6 p-4 rounded-2xl bg-mint/15 border border-mint/30 text-cream flex items-start gap-3.5 shadow-lg">
+      <span class="icon-badge icon-badge-mint w-8 h-8 shrink-0 mt-0.5">
+        <i data-lucide="check-circle" class="w-4 h-4 text-mint"></i>
+      </span>
+      <div class="text-sm">
+        <p class="font-display font-semibold text-mint text-base leading-snug">New Code Dispatched</p>
+        <p class="text-cream/80 mt-1">A fresh 6-digit verification code was sent to your phone.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card p-7 sm:p-9 shadow-2xl">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-mint/10 border border-mint/20 text-mint mb-3" style="color:#0E9D85">
+          <i data-lucide="shield-check" class="w-6 h-6"></i>
+        </div>
+        <h1 class="font-display text-2xl sm:text-3xl font-bold text-navy tracking-tight">Enter Verification Code</h1>
+        <p class="text-sm text-ink/60 mt-1">
+          We sent a 6-digit SMS code to <span class="font-semibold text-navy">{{ identifier }}</span>
+        </p>
+      </div>
+
+      <form action="{{ url_for('verify_otp') }}" method="POST" class="space-y-6" id="otp-form">
+        <div>
+          <label class="block text-center text-xs font-semibold text-ink/50 uppercase tracking-wider mb-3">
+            6-Digit Verification Code
+          </label>
+          <div class="flex items-center justify-center gap-2 sm:gap-2.5" id="otp-inputs">
+            {% for i in range(6) %}
+            <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off"
+              class="otp-digit w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-bold text-navy border-2 border-grey-line rounded-xl outline-none focus:border-indigo focus:ring-2 focus:ring-indigo/20 transition-all bg-white"
+              data-index="{{ i }}" required>
+            {% endfor %}
+          </div>
+          <!-- Hidden input that holds the full combined 6 digits -->
+          <input type="hidden" name="otp" id="combined-otp" value="">
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" id="verify-btn" class="btn btn-primary w-full py-3 text-base font-semibold shadow-lg shadow-indigo/25">
+            <i data-lucide="check" class="w-4 h-4"></i> Verify & Proceed
+          </button>
+        </div>
+      </form>
+
+      <!-- Auto-fill demo button for test ease -->
+      {% if demo_otp %}
+      <div class="mt-4 text-center">
+        <button type="button" onclick="autoFillOtp('{{ demo_otp }}')" class="text-xs text-indigo font-semibold hover:text-indigo-dark inline-flex items-center gap-1">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 1-Click Auto Fill Demo Code ({{ demo_otp }})
+        </button>
+      </div>
+      {% endif %}
+
+      <div class="mt-8 pt-6 border-t border-grey-line text-center text-sm text-ink/60 space-y-2">
+        <p>Didn't receive the SMS code?</p>
+        <form action="{{ url_for('resend_otp') }}" method="POST" class="inline">
+          <button type="submit" id="resend-btn" class="font-semibold text-indigo hover:text-indigo-dark underline inline-flex items-center gap-1 text-sm">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Resend SMS Code
+          </button>
+        </form>
+        <div>
+          <a href="{{ url_for('forgot_password') }}" class="text-xs text-ink/40 hover:text-ink/60">
+            Use a different phone number or email
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const digits = document.querySelectorAll('.otp-digit');
+  const combinedInput = document.getElementById('combined-otp');
+  const form = document.getElementById('otp-form');
+
+  digits.forEach((input, index) => {
+    input.addEventListener('input', (e) => {
+      const val = e.target.value.replace(/[^0-9]/g, '');
+      e.target.value = val ? val[0] : '';
+      if (val && index < digits.length - 1) {
+        digits[index + 1].focus();
+      }
+      updateCombined();
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && index > 0) {
+        digits[index - 1].focus();
+      }
+    });
+
+    // Handle paste of whole 6-digit code
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim().replace(/[^0-9]/g, '');
+      if (pasteData) {
+        for (let i = 0; i < digits.length; i++) {
+          digits[i].value = pasteData[i] || '';
+        }
+        updateCombined();
+        const nextIdx = Math.min(pasteData.length, digits.length - 1);
+        digits[nextIdx].focus();
+      }
+    });
+  });
+
+  function updateCombined() {
+    let full = '';
+    digits.forEach(d => { full += d.value; });
+    combinedInput.value = full;
+  }
+
+  form.addEventListener('submit', function (e) {
+    updateCombined();
+    if (combinedInput.value.length < 6) {
+      e.preventDefault();
+      alert('Please enter the complete 6-digit verification code.');
+    }
+  });
+
+  if (digits[0]) {
+    digits[0].focus();
+  }
+});
+
+function autoFillOtp(code) {
+  const digits = document.querySelectorAll('.otp-digit');
+  for (let i = 0; i < digits.length; i++) {
+    digits[i].value = code[i] || '';
+  }
+  document.getElementById('combined-otp').value = code;
+  if (digits[5]) digits[5].focus();
+}
+</script>
+
+{% endblock %}

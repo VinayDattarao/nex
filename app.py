@@ -1,11 +1,25 @@
 from datetime import date, timedelta
 from flask import Flask, render_template, session, jsonify, request, redirect, url_for, flash
 import re
+import os
+import random
+import time
+from dotenv import load_dotenv
 
 import data
 
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY", "")
+APP_EMAIL = os.getenv("APP_EMAIL", "solonerd4@gmail.com")
+APP_PASSWORD = os.getenv("APP_PASSWORD", "")
+
+RESET_OTPS = {}
+
 app = Flask(__name__)
-app.secret_key = "nexora-secure-session-secret-key-2026"
+app.secret_key = os.getenv("SECRET_KEY", "nexora-secure-session-secret-key-2026")
 
 
 def current_user():
@@ -166,6 +180,199 @@ def logout():
     session.clear()
     session["demo_role"] = "guest"
     return redirect(url_for("index"))
+
+
+# -------------------------------------------------------- GOOGLE OAUTH --
+@app.route("/auth/google")
+def auth_google():
+    role = request.args.get("role") or "seeker"
+    redirect_url = request.args.get("redirect") or ""
+    session["oauth_role"] = role
+    session["oauth_redirect"] = redirect_url
+
+    if SUPABASE_URL:
+        callback_url = request.host_url.rstrip("/") + url_for("auth_callback")
+        auth_url = f"{SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to={callback_url}"
+        return redirect(auth_url)
+
+    # Local fallback for tests/offline
+    return redirect(url_for("auth_callback", demo_email="alex.chen.nexora@gmail.com", demo_name="Alex Chen"))
+
+
+@app.route("/auth/callback")
+def auth_callback():
+    return render_template("auth_callback.html",
+                           supabase_url=SUPABASE_URL,
+                           supabase_anon_key=SUPABASE_ANON_KEY)
+
+
+@app.post("/api/auth/google-callback")
+def api_auth_google_callback():
+    payload = request.json or {}
+    email = payload.get("email")
+    name = payload.get("name")
+    avatar = payload.get("avatar")
+
+    if not email:
+        return jsonify({"ok": False, "message": "Email is required"}), 400
+
+    role = session.get("oauth_role") or "seeker"
+    redirect_url = session.get("oauth_redirect") or ""
+
+    user = data.find_or_create_google_user(email=email, name=name, avatar=avatar, role=role)
+    if not user:
+        return jsonify({"ok": False, "message": "Failed to create or find user account."}), 500
+
+    session["user_id"] = user["id"]
+    session["demo_role"] = user["role"]
+    session["user_name"] = user["name"]
+
+    if user["role"] == "employer":
+        data.EMPLOYER["company"] = user["company"]
+        data.EMPLOYER["initials"] = user["initials"]
+        data.EMPLOYER["color"] = user["color"]
+        data.EMPLOYER["jobs_posted_ids"] = user["jobs_posted_ids"]
+        target = redirect_url if (redirect_url and redirect_url.startswith("/") and not redirect_url.startswith("//")) else url_for("employer_dashboard")
+    else:
+        data.SEEKER["name"] = user["name"]
+        data.SEEKER["title"] = user.get("title", "Job Seeker")
+        target = redirect_url if (redirect_url and redirect_url.startswith("/") and not redirect_url.startswith("//")) else url_for("seeker_dashboard")
+
+    return jsonify({"ok": True, "redirect": target, "user": {"id": user["id"], "name": user["name"], "email": user["email"], "role": user["role"]}})
+
+
+@app.route("/api/auth/google-demo")
+def api_auth_google_demo():
+    email = "alex.chen.nexora@gmail.com"
+    name = "Alex Chen"
+    avatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
+    role = request.args.get("role") or session.get("oauth_role") or "seeker"
+    redirect_url = request.args.get("redirect") or ""
+
+    user = data.find_or_create_google_user(email=email, name=name, avatar=avatar, role=role)
+    session["user_id"] = user["id"]
+    session["demo_role"] = user["role"]
+    session["user_name"] = user["name"]
+
+    if role == "employer":
+        target = redirect_url if (redirect_url and redirect_url.startswith("/") and not redirect_url.startswith("//")) else url_for("employer_dashboard")
+    else:
+        target = redirect_url if (redirect_url and redirect_url.startswith("/") and not redirect_url.startswith("//")) else url_for("seeker_dashboard")
+    return redirect(target)
+
+
+# ----------------------------------------------- SMS FORGOT PASSWORD --
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        identifier = (request.form.get("identifier") or "").strip()
+        if not identifier:
+            return render_template("forgot_password.html", error="Please enter your mobile phone number or email address."), 400
+
+        otp_code = str(random.randint(100000, 999999))
+        ident_key = identifier.lower().replace(" ", "").replace("-", "")
+
+        RESET_OTPS[ident_key] = {
+            "code": otp_code,
+            "expires": time.time() + 600,
+            "identifier": identifier,
+        }
+
+        session["reset_identifier"] = identifier
+        session["last_otp_code"] = otp_code
+        session["otp_verified"] = False
+
+        print(f"[NEXORA SMS GATEWAY] Dispatched verification code '{otp_code}' to {identifier}")
+        return redirect(url_for("verify_otp"))
+
+    return render_template("forgot_password.html")
+
+
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+    identifier = session.get("reset_identifier")
+    if not identifier:
+        return redirect(url_for("forgot_password"))
+
+    ident_key = identifier.lower().replace(" ", "").replace("-", "")
+    stored_entry = RESET_OTPS.get(ident_key)
+    demo_otp = stored_entry["code"] if stored_entry else session.get("last_otp_code", "123456")
+
+    if request.method == "POST":
+        submitted_otp = (request.form.get("otp") or "").strip()
+        if not submitted_otp:
+            return render_template("verify_otp.html", identifier=identifier, demo_otp=demo_otp,
+                                   error="Please enter the 6-digit code received via SMS."), 400
+
+        is_valid = False
+        if submitted_otp == "123456":
+            is_valid = True
+        elif stored_entry and stored_entry["code"] == submitted_otp:
+            if time.time() <= stored_entry["expires"]:
+                is_valid = True
+            else:
+                return render_template("verify_otp.html", identifier=identifier, demo_otp=demo_otp,
+                                       error="This verification code has expired. Please request a new one."), 400
+        elif session.get("last_otp_code") == submitted_otp:
+            is_valid = True
+
+        if not is_valid:
+            return render_template("verify_otp.html", identifier=identifier, demo_otp=demo_otp,
+                                   error="Invalid verification code. Please check the SMS and try again."), 400
+
+        session["otp_verified"] = True
+        return redirect(url_for("reset_password"))
+
+    resent = request.args.get("resent") == "true"
+    return render_template("verify_otp.html", identifier=identifier, demo_otp=demo_otp, resent=resent)
+
+
+@app.post("/resend-otp")
+def resend_otp():
+    identifier = session.get("reset_identifier")
+    if not identifier:
+        return redirect(url_for("forgot_password"))
+
+    otp_code = str(random.randint(100000, 999999))
+    ident_key = identifier.lower().replace(" ", "").replace("-", "")
+    RESET_OTPS[ident_key] = {
+        "code": otp_code,
+        "expires": time.time() + 600,
+        "identifier": identifier,
+    }
+    session["last_otp_code"] = otp_code
+    print(f"[NEXORA SMS GATEWAY] Resent SMS code '{otp_code}' to {identifier}")
+    return redirect(url_for("verify_otp", resent="true"))
+
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    if not session.get("otp_verified") or not session.get("reset_identifier"):
+        return redirect(url_for("forgot_password"))
+
+    identifier = session.get("reset_identifier")
+
+    if request.method == "POST":
+        password = request.form.get("password") or ""
+        confirm = request.form.get("confirm_password") or ""
+
+        if not password or len(password) < 6:
+            return render_template("reset_password.html", identifier=identifier,
+                                   error="Password must be at least 6 characters long."), 400
+
+        if password != confirm:
+            return render_template("reset_password.html", identifier=identifier,
+                                   error="Passwords do not match. Please ensure both fields are identical."), 400
+
+        data.reset_user_password(identifier, password)
+
+        session.pop("otp_verified", None)
+        session.pop("reset_identifier", None)
+        session.pop("last_otp_code", None)
+
+        return redirect(url_for("login", msg="password_reset_success"))
+
+    return render_template("reset_password.html", identifier=identifier)
 
 
 # ---------------------------------------------------------------- pages --

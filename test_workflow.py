@@ -210,6 +210,95 @@ class NexoraWorkflowTests(unittest.TestCase):
         self.assertEqual(res_emp.status_code, 302)
         self.assertIn('/dashboard/employer', res_emp.headers['Location'])
 
+    def test_10_google_auth_flow(self):
+        """Test Google authentication flow: initiation, callback handling, session establishment."""
+        # 1. /auth/google redirects to Supabase Google OAuth authorize URL
+        res_init = self.client.get('/auth/google?role=seeker&redirect=/dashboard/seeker')
+        self.assertEqual(res_init.status_code, 302)
+        self.assertIn('provider=google', res_init.headers['Location'])
+        self.assertIn('supabase.co/auth/v1/authorize', res_init.headers['Location'])
+
+        # 2. /auth/callback renders handler page
+        res_cb = self.client.get('/auth/callback')
+        self.assertEqual(res_cb.status_code, 200)
+        self.assertIn('Authenticating with Google', res_cb.data.decode('utf-8'))
+
+        # 3. /api/auth/google-callback creates/finds Google user and establishes session
+        res_api = self.client.post('/api/auth/google-callback', json={
+            'email': 'maya.lin.google@example.com',
+            'name': 'Maya Lin',
+            'avatar': 'https://example.com/avatar.jpg'
+        })
+        self.assertEqual(res_api.status_code, 200)
+        res_json = res_api.get_json()
+        self.assertTrue(res_json['ok'])
+        self.assertIn('/dashboard/seeker', res_json['redirect'])
+
+        # Verify authenticated session in Flask
+        with self.client.session_transaction() as sess:
+            self.assertEqual(sess.get('demo_role'), 'seeker')
+            self.assertEqual(sess.get('user_name'), 'Maya Lin')
+
+        # 4. Instant 1-click Google demo login
+        res_demo = self.client.get('/api/auth/google-demo')
+        self.assertEqual(res_demo.status_code, 302)
+        self.assertIn('/dashboard/seeker', res_demo.headers['Location'])
+
+    def test_11_sms_forgot_password_and_reset_flow(self):
+        """Test complete SMS OTP Forgot Password flow: request, OTP verification, password update, and login."""
+        # Target user: Jordan Reyes
+        target_email = 'jordan@nexora.com'
+        new_password = 'newpassword2026'
+
+        # 1. Request SMS OTP for Jordan
+        res_req = self.client.post('/forgot-password', data={'identifier': target_email}, follow_redirects=False)
+        self.assertEqual(res_req.status_code, 302)
+        self.assertIn('/verify-otp', res_req.headers['Location'])
+
+        # 2. View OTP verification page with SMS preview banner
+        res_vpage = self.client.get('/verify-otp')
+        self.assertEqual(res_vpage.status_code, 200)
+        html_vpage = res_vpage.data.decode('utf-8')
+        self.assertIn('Enter Verification Code', html_vpage)
+        self.assertIn('Incoming SMS Message', html_vpage)
+
+        # Retrieve the OTP that was dispatched
+        with self.client.session_transaction() as sess:
+            sent_otp = sess.get('last_otp_code')
+        self.assertIsNotNone(sent_otp)
+        self.assertEqual(len(sent_otp), 6)
+
+        # 3. Test invalid OTP rejection
+        res_bad = self.client.post('/verify-otp', data={'otp': '000000'})
+        self.assertEqual(res_bad.status_code, 400)
+        self.assertIn('Invalid verification code', res_bad.data.decode('utf-8'))
+
+        # 4. Test valid OTP submission
+        res_good = self.client.post('/verify-otp', data={'otp': sent_otp}, follow_redirects=False)
+        self.assertEqual(res_good.status_code, 302)
+        self.assertIn('/reset-password', res_good.headers['Location'])
+
+        # 5. View Reset Password page
+        res_reset_page = self.client.get('/reset-password')
+        self.assertEqual(res_reset_page.status_code, 200)
+        self.assertIn('Create New Password', res_reset_page.data.decode('utf-8'))
+
+        # 6. Submit new password
+        res_set = self.client.post('/reset-password', data={
+            'password': new_password,
+            'confirm_password': new_password
+        }, follow_redirects=False)
+        self.assertEqual(res_set.status_code, 302)
+        self.assertIn('/login?msg=password_reset_success', res_set.headers['Location'])
+
+        # 7. Sign in with the newly reset password!
+        res_login = self.client.post('/login', data={
+            'email': target_email,
+            'password': new_password
+        }, follow_redirects=True)
+        self.assertEqual(res_login.status_code, 200)
+        self.assertIn('Welcome back, Jordan', res_login.data.decode('utf-8'))
+
 
 if __name__ == '__main__':
     unittest.main()

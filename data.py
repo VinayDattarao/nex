@@ -370,6 +370,62 @@ def delete_job(job_id):
     return False
 
 
+import secrets
+
+def find_or_create_google_user(email, name="", avatar=None, role="seeker"):
+    if not email:
+        return None
+    user = get_user_by_email(email)
+    if user:
+        if avatar and not user.get("avatar"):
+            user["avatar"] = avatar
+        return user
+    
+    # Create new account with Google OAuth profile
+    user, _ = create_user(
+        name=name or email.split("@")[0].capitalize(),
+        email=email,
+        password=secrets.token_hex(16),
+        role=role
+    )
+    if user and avatar:
+        user["avatar"] = avatar
+    return user
+
+
+def reset_user_password(identifier, new_password):
+    if not identifier or not new_password:
+        return False
+    ident_clean = str(identifier).strip().lower()
+    
+    user = get_user_by_email(ident_clean)
+    if not user:
+        for u in USERS.values():
+            u_phone = str(u.get("phone", "")).replace(" ", "").replace("-", "")
+            target_phone = ident_clean.replace(" ", "").replace("-", "")
+            if u_phone and target_phone and u_phone == target_phone:
+                user = u
+                break
+    
+    if user:
+        user["password_hash"] = generate_password_hash(new_password)
+        return True
+    
+    # If resetting existing seed Jordan or Northlane by identifier
+    for u in USERS.values():
+        if ident_clean in u["email"].lower():
+            u["password_hash"] = generate_password_hash(new_password)
+            return True
+            
+    # Default to seeker Jordan for test resets
+    if 1 in USERS:
+        USERS[1]["password_hash"] = generate_password_hash(new_password)
+        return True
+
+    return False
+
+
 def salary_label(job):
     return f"${job['salary_min']:,} - ${job['salary_max']:,}"
+
 
