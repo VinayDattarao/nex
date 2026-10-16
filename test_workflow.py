@@ -294,6 +294,31 @@ class NexoraWorkflowTests(unittest.TestCase):
         self.assertEqual(res_login.status_code, 200)
         self.assertIn('Welcome back, Jordan', res_login.data.decode('utf-8'))
 
+    def test_12_same_email_different_role_rejection(self):
+        """Test that an email registered as a job seeker CANNOT be re-registered as an employer."""
+        test_email = "unique.seeker@domain.com"
+        # 1. Register as seeker
+        res_reg = self.client.post('/register', data={
+            'name': 'Candidate One',
+            'email': test_email,
+            'password': 'password123',
+            'role': 'seeker'
+        }, follow_redirects=False)
+        self.assertEqual(res_reg.status_code, 302)
+
+        # 2. Attempt to register the exact same email as employer
+        res_conflict = self.client.post('/register', data={
+            'name': 'Employer Person',
+            'email': test_email,
+            'password': 'password123',
+            'role': 'employer',
+            'company': 'Conflict Corp'
+        }, follow_redirects=False)
+        self.assertEqual(res_conflict.status_code, 400)
+        html_conflict = res_conflict.data.decode('utf-8')
+        self.assertIn('already registered as a Seeker', html_conflict)
+        self.assertIn('cannot be shared across both Job Seeker and Employer accounts', html_conflict)
+
 
 if __name__ == '__main__':
     unittest.main()

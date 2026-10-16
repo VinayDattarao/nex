@@ -334,8 +334,12 @@ def authenticate_user(email, password):
 def create_user(name, email, password, role="seeker", company="", location="", title=""):
     user_id = next(_user_id_counter)
     email_clean = email.strip().lower()
-    if get_user_by_email(email_clean):
-        return None, "An account with this email already exists."
+    existing = get_user_by_email(email_clean)
+    if existing:
+        existing_role = existing.get("role", "seeker")
+        if existing_role != role:
+            return None, f"This email is already registered as a {existing_role.capitalize()}. To maintain data privacy, candidate workflows, and employer billing isolation, a single email address cannot be shared across both Job Seeker and Employer accounts. Please use a distinct corporate/work email for Employer registration, or sign in to your existing account."
+        return None, "An account with this email already exists. Please log in."
 
     if role == "employer":
         company_name = (company or name or "My Company").strip()
