@@ -1,0 +1,172 @@
+```html
+{% extends "base.html" %}
+
+{% block title %}{{ company.name }} — Posted Jobs — NEXORA{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-5 md:px-8 py-10 md:py-14">
+
+    <!-- Back Navigation -->
+    <a
+        href="{{ url_for('companies') }}"
+        class="inline-flex items-center gap-1.5 text-sm text-cream/60 hover:text-mint mb-6"
+    >
+        <i data-lucide="arrow-left" class="w-4 h-4" aria-hidden="true"></i>
+        <span>All companies</span>
+    </a>
+
+    <!-- Company Header -->
+    <div class="mb-10 flex items-center gap-4">
+        <span
+            class="company-logo w-14 h-14 rounded-2xl flex items-center justify-center text-white text-base font-bold shrink-0"
+            data-bg-color="{{ company.color }}"
+            aria-hidden="true"
+        >{{ company.initials }}</span>
+
+        <div class="min-w-0">
+            <h1 class="font-display text-2xl md:text-3xl font-bold text-cream tracking-tight break-words">
+                {{ company.name }}
+            </h1>
+
+            <p class="text-sm text-cream/50 mt-1">
+                {{ company.industry }} · {{ company.location }} · {{ company.employees }} employees
+            </p>
+        </div>
+    </div>
+
+    <!-- Posted Jobs Heading -->
+    <h2 class="font-display text-xl font-bold text-cream mb-5">
+        Posted jobs
+        <span class="text-mint">({{ jobs|length }})</span>
+    </h2>
+
+    <!-- Jobs List -->
+    {% if jobs %}
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        {% for job in jobs %}
+        <a
+            href="{{ url_for('job_details', job_id=job.id) }}"
+            class="card card-hover p-5 flex flex-col gap-3"
+            aria-label="View details for {{ job.title }} at {{ job.company }}"
+        >
+            <!-- Job Title and Company -->
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span
+                        class="job-company-logo w-10 h-10 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0"
+                        data-bg-color="{{ job.company_color }}"
+                        aria-hidden="true"
+                    >{{ job.company_initials }}</span>
+
+                    <div class="min-w-0">
+                        <p class="font-display font-semibold text-navy leading-tight break-words">
+                            {{ job.title }}
+                        </p>
+
+                        <p class="text-xs text-ink/50 mt-1 break-words">
+                            {{ job.company }}
+                        </p>
+                    </div>
+                </div>
+
+                {% if job.featured %}
+                <span class="chip chip-indigo shrink-0">Featured</span>
+                {% endif %}
+            </div>
+
+            <!-- Job Information -->
+            <div class="flex flex-wrap gap-x-4 gap-y-2 text-xs text-ink/50">
+
+                <span class="inline-flex items-center gap-1">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5 shrink-0" aria-hidden="true"></i>
+                    <span>{{ job.location }}</span>
+                </span>
+
+                <span class="inline-flex items-center gap-1">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0" aria-hidden="true"></i>
+                    <span>{{ job.type }}</span>
+                </span>
+
+            </div>
+
+            <!-- Salary -->
+            <p class="text-sm font-semibold text-navy">
+                {{ salary_label(job) }}
+            </p>
+        </a>
+        {% endfor %}
+
+    </div>
+
+    {% else %}
+
+    <!-- Empty State -->
+    <div class="card p-8 md:p-12 text-center">
+        <div class="flex justify-center mb-4">
+            <span class="icon-badge icon-badge-mint w-14 h-14">
+                <i data-lucide="briefcase-business" class="w-6 h-6" aria-hidden="true"></i>
+            </span>
+        </div>
+
+        <h3 class="font-display font-semibold text-navy">
+            No jobs posted right now
+        </h3>
+
+        <p class="text-sm text-ink/50 mt-2">
+            Check back soon for new roles from {{ company.name }}.
+        </p>
+
+        <div class="mt-5">
+            <a href="{{ url_for('companies') }}" class="btn btn-primary btn-sm">
+                Explore other companies
+            </a>
+        </div>
+    </div>
+
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    "use strict";
+
+    function applyCompanyColors() {
+        var logos = document.querySelectorAll(
+            ".company-logo[data-bg-color], .job-company-logo[data-bg-color]"
+        );
+
+        logos.forEach(function (logo) {
+            var color = logo.getAttribute("data-bg-color");
+
+            if (color && window.CSS && CSS.supports("color", color)) {
+                logo.style.backgroundColor = color;
+            } else {
+                logo.style.backgroundColor = "#6C5CF5";
+            }
+        });
+    }
+
+    function initializeCompanyJobsPage() {
+        applyCompanyColors();
+
+        if (window.lucide && typeof window.lucide.createIcons === "function") {
+            window.lucide.createIcons();
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeCompanyJobsPage
+        );
+    } else {
+        initializeCompanyJobsPage();
+    }
+})();
+</script>
+{% endblock %}
+```

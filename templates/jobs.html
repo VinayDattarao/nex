@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Find Jobs — NEXORA{% endblock %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto px-5 md:px-8 py-8 md:py-10">
+
+  <div class="mb-6 flex items-center gap-3">
+    <span class="icon-badge icon-badge-mint w-11 h-11"><i data-lucide="search" class="w-5 h-5 icon-wiggle"></i></span>
+    <div>
+      <h1 class="font-display text-2xl md:text-3xl font-bold text-cream tracking-tight">Find your next role</h1>
+      <p class="text-sm text-cream/50 mt-1"><span id="results-count">{{ jobs_json|length }}</span> jobs across Australia</p>
+    </div>
+  </div>
+
+  <!-- Search bar -->
+  <div class="bg-white border border-grey-line rounded-2xl p-2 flex flex-col sm:flex-row gap-2 mb-6">
+    <div class="flex items-center gap-2.5 px-3 py-2.5 flex-1 min-w-0">
+      <i data-lucide="search" class="w-4 h-4 text-grey shrink-0"></i>
+      <input id="filter-keyword" type="text" placeholder="Job title, skill or company" class="w-full text-sm outline-none placeholder:text-grey">
+    </div>
+    <div class="hidden sm:block w-px bg-grey-line my-1"></div>
+    <div class="flex items-center gap-2.5 px-3 py-2.5 sm:w-48 shrink-0">
+      <i data-lucide="map-pin" class="w-4 h-4 text-grey shrink-0"></i>
+      <input id="filter-location" type="text" placeholder="Location" class="w-full text-sm outline-none placeholder:text-grey">
+    </div>
+    <button onclick="applyFilters()" class="btn btn-accent shrink-0">Search Jobs</button>
+  </div>
+
+  <div class="flex items-center justify-between mb-5 lg:hidden">
+    <button onclick="openDrawer('filters-drawer')" class="btn btn-outline btn-sm on-dark"><i data-lucide="sliders-horizontal" class="w-4 h-4"></i>Filters</button>
+    <select id="sort-select-mobile" class="text-sm border border-grey-line rounded-xl px-3 py-2 bg-white" onchange="syncSort(this.value)">
+      <option value="relevance">Sort: Relevance</option>
+      <option value="newest">Sort: Newest</option>
+      <option value="salary">Sort: Highest salary</option>
+    </select>
+  </div>
+
+  <div class="grid lg:grid-cols-[260px_1fr] gap-8">
+    <!-- Desktop filters -->
+    <aside class="hidden lg:block">
+      <div class="card p-5 sticky top-24" id="filters-panel-desktop"></div>
+    </aside>
+
+    <!-- Results -->
+    <div>
+      <div class="hidden lg:flex items-center justify-end mb-4">
+        <select id="sort-select" class="text-sm border border-grey-line rounded-xl px-3 py-2 bg-white" onchange="syncSort(this.value)">
+          <option value="relevance">Sort: Relevance</option>
+          <option value="newest">Sort: Newest</option>
+          <option value="salary">Sort: Highest salary</option>
+        </select>
+      </div>
+      <div id="job-list" class="flex flex-col gap-4"></div>
+      <div id="empty-state" class="hidden card p-12 text-center">
+        <i data-lucide="search-x" class="w-8 h-8 text-grey mx-auto mb-3"></i>
+        <p class="font-display font-semibold text-navy">No roles match those filters</p>
+        <p class="text-sm text-ink/50 mt-1">Try broadening your search or clearing a filter.</p>
+        <button onclick="clearFilters()" class="btn btn-outline btn-sm mt-4">Clear filters</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile filters drawer -->
+<div class="nx-overlay" id="filters-drawer-overlay" onclick="closeDrawer('filters-drawer')"></div>
+<div class="nx-drawer" id="filters-drawer">
+  <div class="p-5 flex items-center justify-between border-b border-grey-line">
+    <span class="font-display font-semibold text-navy">Filters</span>
+    <button onclick="closeDrawer('filters-drawer')" class="btn btn-ghost btn-sm !px-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+  </div>
+  <div class="p-5" id="filters-panel-mobile"></div>
+  <div class="p-5 border-t border-grey-line sticky bottom-0 bg-white">
+    <button onclick="closeDrawer('filters-drawer'); applyFilters();" class="btn btn-primary w-full">Show results</button>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.NEXORA_JOBS = {{ jobs_json | tojson }};
+  window.NEXORA_SAVED = {{ saved_ids | tojson }};
+  window.NEXORA_FILTER_OPTIONS = {
+    locations: {{ locations | tojson }},
+    industries: {{ industries | tojson }},
+    jobTypes: {{ job_types | tojson }},
+    workModes: {{ work_modes | tojson }},
+    experienceLevels: {{ experience_levels | tojson }},
+  };
+</script>
+<script src="{{ url_for('static', filename='js/jobs.js') }}"></script>
+{% endblock %}

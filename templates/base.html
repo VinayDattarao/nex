@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}NEXORA — Find work that moves you forward{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy: '#0B1230', 'navy-soft': '#141B3F', 'navy-elevated': '#1B234D', ink: '#12142B',
+          cream: '#F8F6F1', 'cream-dim': '#EFEBE2',
+          indigo: { DEFAULT: '#6C5CF5', dark: '#5342D6' },
+          mint: { DEFAULT: '#2BE0BE', soft: '#E2F7F2' },
+          amber: '#FFB74A',
+          rose: '#FF6B87', grey: { DEFAULT: '#8B8F9E', line: '#E4E1D9' },
+        },
+        fontFamily: {
+          sans: ['Inter', 'sans-serif'],
+          display: ['Plus Jakarta Sans', 'sans-serif'],
+        },
+        borderRadius: { '2xl': '18px', '3xl': '22px' },
+      }
+    }
+  }
+</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+{% block head %}{% endblock %}
+</head>
+<body class="bg-navy">
+
+<div id="toast-container" aria-live="polite"></div>
+
+<!-- ==================== NAV ==================== -->
+<header class="sticky top-0 z-50 bg-navy/85 backdrop-blur-md border-b border-white/10">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="flex items-center justify-between h-16">
+      <a href="{{ url_for('index') }}" class="flex items-center gap-2.5 shrink-0 group">
+        <svg class="nx-mark icon-bounce-hover" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="17" cy="17" r="16" stroke="#F8F6F1" stroke-width="1.4" opacity="0.9"/>
+          <circle cx="9" cy="22" r="3" fill="#6C5CF5"/>
+          <circle cx="25" cy="12" r="3" fill="#2BE0BE"/>
+          <path d="M9 22 C 14 16, 19 18, 25 12" stroke="#F8F6F1" stroke-width="1.4" stroke-dasharray="1 3.4" stroke-linecap="round" opacity="0.85"/>
+          <g class="nx-orbit-dot"><circle cx="25" cy="12" r="1.3" fill="#0B1230"/></g>
+        </svg>
+        <span class="nx-wordmark">NEXORA</span>
+      </a>
+
+      <nav class="hidden lg:flex items-center gap-1 text-sm font-medium text-cream/70">
+        {% if demo_role == 'seeker' %}
+          <a href="{{ url_for('seeker_dashboard') }}" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream {% if request.path=='/dashboard/seeker' %}text-mint font-semibold{% endif %}">Dashboard</a>
+          <a href="{{ url_for('jobs') }}" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream {% if request.path=='/jobs' %}text-mint font-semibold{% endif %}">Find Jobs</a>
+          <a href="{{ url_for('seeker_dashboard') }}#applications" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream">Applications</a>
+          <a href="{{ url_for('seeker_dashboard') }}#saved" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream">Saved Jobs</a>
+        {% elif demo_role == 'employer' %}
+          <a href="{{ url_for('employer_dashboard') }}" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream {% if request.path=='/dashboard/employer' %}text-mint font-semibold{% endif %}">Dashboard</a>
+          <a href="{{ url_for('employer_dashboard') }}#jobs" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream">Jobs</a>
+          <a href="{{ url_for('applicants') }}" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream {% if request.path=='/applicants' %}text-mint font-semibold{% endif %}">Applicants</a>
+          <a href="{{ url_for('post_job') }}" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream {% if request.path=='/post-job' %}text-mint font-semibold{% endif %}">Post Job</a>
+        {% elif demo_role == 'admin' %}
+          <a href="{{ url_for('admin') }}" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream {% if request.path=='/admin' %}text-mint font-semibold{% endif %}">Dashboard</a>
+          <a href="{{ url_for('admin') }}#jobs" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream">Jobs</a>
+          <a href="{{ url_for('admin') }}#reports" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream">Reports</a>
+        {% else %}
+          <a href="{{ url_for('jobs') }}" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream {% if request.path=='/jobs' %}text-mint font-semibold{% endif %}">Find Jobs</a>
+          <a href="{{ url_for('index') }}#explore-plans" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream">Explore Plans</a>
+          <a href="{{ url_for('companies') }}" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream {% if request.path.startswith('/companies') %}text-mint font-semibold{% endif %}">Explore Top Companies</a>
+          <div class="nx-dd">
+            <button type="button" class="px-3 py-2 rounded-lg hover:bg-white/5 hover:text-cream inline-flex items-center gap-1">For Employers <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i></button>
+            <div class="nx-dd-menu">
+              <a href="{{ url_for('register', role='employer', msg='need_details', redirect='/post-job') }}" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4 text-amber"></i>Post a Job</a>
+              <a href="{{ url_for('index') }}#explore-plans" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><i data-lucide="tag" class="w-4 h-4 text-mint" style="color:#0E9D85"></i>Subscription Plans</a>
+              <a href="{{ url_for('login', redirect='/dashboard/employer') }}" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><i data-lucide="log-in" class="w-4 h-4 text-indigo"></i>Employer Login</a>
+              <a href="{{ url_for('register', role='employer') }}" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4 text-mint" style="color:#0E9D85"></i>Employer Register</a>
+            </div>
+          </div>
+        {% endif %}
+      </nav>
+
+      <div class="flex items-center gap-2">
+        {% if demo_role == 'guest' or not demo_role %}
+        <a href="{{ url_for('login') }}" class="hidden sm:inline-flex btn btn-ghost btn-sm on-dark">Login</a>
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm"><i data-lucide="user-plus" class="w-3.5 h-3.5"></i>Register</a>
+        {% else %}
+        <a href="{{ url_for('seeker_dashboard' if demo_role=='seeker' else ('employer_dashboard' if demo_role=='employer' else 'admin')) }}" class="hidden sm:flex items-center gap-2 text-sm text-cream/80 hover:text-white pr-1">
+          <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white shadow-sm" style="background:linear-gradient(135deg, var(--indigo), var(--mint))">
+            {{ current_user.initials if (current_user and current_user.get('initials')) else ('JR' if demo_role=='seeker' else ('ND' if demo_role=='employer' else 'AD')) }}
+          </span>
+          <span class="text-xs font-medium text-cream/70 hidden md:inline truncate max-w-[120px]">{{ current_user.name.split(' ')[0] if (current_user and current_user.get('name')) else (current_user.company if (current_user and current_user.get('company')) else ('Seeker' if demo_role=='seeker' else 'Employer')) }}</span>
+        </a>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline btn-sm on-dark">Sign Out</a>
+        {% endif %}
+        <button id="mobile-nav-btn" class="lg:hidden btn btn-ghost btn-sm on-dark !px-2" aria-label="Open menu">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile nav drawer -->
+<div class="nx-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
+<div class="nx-drawer" id="mobile-nav-drawer">
+  <div class="p-5 flex items-center justify-between border-b border-grey-line">
+    <span class="nx-wordmark" style="color:var(--navy)">NEXORA</span>
+    <button onclick="closeMobileNav()" class="btn btn-ghost btn-sm !px-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+  </div>
+  <nav class="p-3 flex flex-col text-sm font-medium">
+    {% if demo_role == 'seeker' %}
+      <a href="{{ url_for('seeker_dashboard') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="layout-dashboard" class="w-4 h-4 text-indigo"></i>Dashboard</a>
+      <a href="{{ url_for('jobs') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="search" class="w-4 h-4 text-mint" style="color:#0E9D85"></i>Find Jobs</a>
+      <a href="{{ url_for('seeker_dashboard') }}#applications" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="send" class="w-4 h-4 text-amber" style="color:#B4790A"></i>Applications</a>
+      <a href="{{ url_for('seeker_dashboard') }}#saved" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="bookmark" class="w-4 h-4 text-rose"></i>Saved Jobs</a>
+      <a href="{{ url_for('logout') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5 text-rose"><i data-lucide="log-out" class="w-4 h-4"></i>Sign Out</a>
+    {% elif demo_role == 'employer' %}
+      <a href="{{ url_for('employer_dashboard') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="layout-dashboard" class="w-4 h-4 text-indigo"></i>Dashboard</a>
+      <a href="{{ url_for('applicants') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="users" class="w-4 h-4 text-mint" style="color:#0E9D85"></i>Applicants</a>
+      <a href="{{ url_for('post_job') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="plus-circle" class="w-4 h-4 text-amber" style="color:#B4790A"></i>Post Job</a>
+      <a href="{{ url_for('logout') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5 text-rose"><i data-lucide="log-out" class="w-4 h-4"></i>Sign Out</a>
+    {% elif demo_role == 'admin' %}
+      <a href="{{ url_for('admin') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="shield" class="w-4 h-4 text-rose"></i>Dashboard</a>
+      <a href="{{ url_for('logout') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5 text-rose"><i data-lucide="log-out" class="w-4 h-4"></i>Sign Out</a>
+    {% else %}
+      <a href="{{ url_for('jobs') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="search" class="w-4 h-4 text-indigo"></i>Find Jobs</a>
+      <a href="{{ url_for('index') }}#explore-plans" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="tag" class="w-4 h-4 text-mint" style="color:#0E9D85"></i>Explore Plans</a>
+      <a href="{{ url_for('companies') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="building-2" class="w-4 h-4 text-mint" style="color:#0E9D85"></i>Explore Top Companies</a>
+      <a href="{{ url_for('register', role='employer', msg='need_details', redirect='/post-job') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5"><i data-lucide="plus-circle" class="w-4 h-4 text-amber" style="color:#B4790A"></i>Post a Job</a>
+      <a href="{{ url_for('login') }}" class="px-3 py-3 rounded-lg hover:bg-navy/5 flex items-center gap-2.5 text-indigo font-medium"><i data-lucide="log-in" class="w-4 h-4"></i>Login</a>
+      <a href="{{ url_for('register') }}" class="px-3 py-3 rounded-lg bg-indigo/10 text-indigo font-semibold flex items-center gap-2.5"><i data-lucide="user-plus" class="w-4 h-4"></i>Register</a>
+    {% endif %}
+  </nav>
+</div>
+
+<!-- ==================== MAIN ==================== -->
+<main>
+{% block content %}{% endblock %}
+</main>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="border-t border-white/10 mt-20" style="background:var(--navy-soft)">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 py-12 grid grid-cols-2 md:grid-cols-5 gap-8">
+    <div class="col-span-2">
+      <div class="flex items-center gap-2 mb-3">
+        <svg class="nx-mark" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="17" cy="17" r="16" stroke="#F8F6F1" stroke-width="1.4" opacity="0.9"/>
+          <circle cx="9" cy="22" r="3" fill="#6C5CF5"/><circle cx="25" cy="12" r="3" fill="#2BE0BE"/>
+          <path d="M9 22 C 14 16, 19 18, 25 12" stroke="#F8F6F1" stroke-width="1.4" stroke-dasharray="1 3.4" stroke-linecap="round" opacity="0.85"/>
+        </svg>
+        <span class="nx-wordmark">NEXORA</span>
+      </div>
+      <p class="text-sm text-cream/50 max-w-xs">Find work that moves you forward. An Australian employment marketplace connecting job seekers and employers.</p>
+      <div class="flex items-center gap-2 mt-4">
+        <span class="icon-badge icon-badge-indigo w-8 h-8"><i data-lucide="linkedin" class="w-4 h-4"></i></span>
+        <span class="icon-badge icon-badge-mint w-8 h-8"><i data-lucide="instagram" class="w-4 h-4"></i></span>
+        <span class="icon-badge icon-badge-rose w-8 h-8"><i data-lucide="facebook" class="w-4 h-4"></i></span>
+      </div>
+    </div>
+    <div>
+      <p class="text-xs font-semibold text-cream/35 mb-3 uppercase tracking-wide">Job seekers</p>
+      <ul class="space-y-2 text-sm text-cream/60">
+        <li><a href="{{ url_for('jobs') }}" class="hover:text-mint transition-colors">Find Jobs</a></li>
+        <li><a href="{{ url_for('jobs') }}" class="hover:text-mint transition-colors">Browse Companies</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="text-xs font-semibold text-cream/35 mb-3 uppercase tracking-wide">Employers</p>
+      <ul class="space-y-2 text-sm text-cream/60">
+        <li><a href="{{ url_for('post_job') }}" class="hover:text-mint transition-colors">Post a Job</a></li>
+        <li><a href="{{ url_for('pricing') }}" class="hover:text-mint transition-colors">Pricing</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="text-xs font-semibold text-cream/35 mb-3 uppercase tracking-wide">Company</p>
+      <ul class="space-y-2 text-sm text-cream/60">
+        <li><span class="cursor-default">About</span></li>
+        <li><span class="cursor-default">Contact</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-white/10 py-5 text-center text-xs text-cream/35">© 2026 NEXORA. Client demonstration build — not for production use.</div>
+</footer>
+
+<!-- ==================== DEMO CONTROLS ==================== -->
+<div id="demo-controls" class="flex items-center gap-2.5">
+  <div class="relative" id="demo-switcher">
+    <button id="demo-switcher-btn" class="btn btn-sm text-white flex items-center gap-2" onclick="toggleDemoMenu()">
+      <i data-lucide="sparkles" class="w-3.5 h-3.5 icon-spin-slow"></i>
+      Demo mode: <span id="demo-role-label" class="font-semibold capitalize">{{ demo_role if demo_role != 'guest' else 'Visitor' }}</span>
+      <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
+    </button>
+    <div id="demo-menu" class="hidden absolute bottom-12 left-0 w-52 bg-white border border-grey-line rounded-2xl shadow-xl p-1.5">
+      <button onclick="setDemoRole('guest')" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><span class="icon-badge icon-badge-amber w-7 h-7"><i data-lucide="eye" class="w-3.5 h-3.5"></i></span>Visitor</button>
+      <button onclick="setDemoRole('seeker')" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><span class="icon-badge icon-badge-indigo w-7 h-7"><i data-lucide="user" class="w-3.5 h-3.5"></i></span>Job Seeker</button>
+      <button onclick="setDemoRole('employer')" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><span class="icon-badge icon-badge-mint w-7 h-7"><i data-lucide="briefcase" class="w-3.5 h-3.5"></i></span>Employer</button>
+      <button onclick="setDemoRole('admin')" class="w-full text-left px-3 py-2.5 rounded-xl text-sm hover:bg-cream-dim flex items-center gap-2"><span class="icon-badge icon-badge-rose w-7 h-7"><i data-lucide="shield" class="w-3.5 h-3.5"></i></span>Admin</button>
+    </div>
+  </div>
+  {% if demo_role == 'guest' or not demo_role %}
+  <button id="tour-trigger-btn" class="btn btn-sm flex items-center gap-2" onclick="startWebsiteTour()">
+    <i data-lucide="compass" class="w-3.5 h-3.5 icon-spin-slow"></i> Website Tour
+  </button>
+  {% endif %}
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tour.js') }}"></script>
+{% block scripts %}{% endblock %}
+<script>lucide.createIcons();</script>
+</body>
+</html>

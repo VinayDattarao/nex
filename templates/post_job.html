@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Post a Job — NEXORA{% endblock %}
+{% block content %}
+
+<div class="max-w-3xl mx-auto px-5 md:px-8 py-8 md:py-10">
+  <div class="flex items-center gap-3 mb-2">
+    <span class="icon-badge icon-badge-mint w-10 h-10"><i data-lucide="plus-circle" class="w-5 h-5"></i></span>
+    <h1 class="font-display text-2xl md:text-3xl font-bold text-cream tracking-tight">Post a job</h1>
+  </div>
+  <p class="text-sm text-cream/50 mb-8">It takes about 3 minutes. You can review everything before it goes live.</p>
+
+  <!-- Stepper -->
+  <div class="flex items-center mb-9" id="wizard-stepper">
+    {% for step in ['Job Details', 'Preferences', 'Advertisement', 'Payment'] %}
+    <div class="flex items-center {{ '' if loop.last else 'flex-1' }}">
+      <div class="flex flex-col items-center gap-2" data-step-indicator="{{ loop.index }}">
+        <div class="w-8 h-8 rounded-full border-2 border-white/20 flex items-center justify-center font-display font-bold text-xs text-cream/40 step-circle">{{ loop.index }}</div>
+        <span class="text-xs text-cream/50 whitespace-nowrap step-label">{{ step }}</span>
+      </div>
+      {% if not loop.last %}<div class="flex-1 h-0.5 bg-white/15 mx-2 mb-5 step-line"></div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <form id="post-job-form" class="card p-6 md:p-8">
+    <!-- STEP 1 -->
+    <div data-step="1">
+      <h2 class="font-display font-semibold text-lg text-navy mb-5">Job details</h2>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="sm:col-span-2">
+          <label class="text-sm font-medium text-navy block mb-1.5">Job title</label>
+          <input required name="title" type="text" placeholder="e.g. Senior Frontend Developer" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+          <p class="text-xs text-rose mt-1 hidden" data-error="title">Please enter a job title.</p>
+        </div>
+        <div class="sm:col-span-2">
+          <label class="text-sm font-medium text-navy block mb-1.5">Description</label>
+          <textarea name="description" rows="4" placeholder="Describe the role..." class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo"></textarea>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-navy block mb-1.5">Location</label>
+          <select name="location" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5">
+            {% for l in locations %}<option>{{ l }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-navy block mb-1.5">Industry</label>
+          <select name="industry" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5">
+            {% for i in industries %}<option>{{ i }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-navy block mb-1.5">Salary min (AUD)</label>
+          <input name="salary_min" type="number" step="1000" placeholder="70000" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+        </div>
+        <div>
+          <label class="text-sm font-medium text-navy block mb-1.5">Salary max (AUD)</label>
+          <input name="salary_max" type="number" step="1000" placeholder="95000" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="text-sm font-medium text-navy block mb-1.5">Closing date</label>
+          <input name="closing_date" type="date" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo sm:w-1/2">
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div data-step="2" class="hidden">
+      <h2 class="font-display font-semibold text-lg text-navy mb-5">Candidate preferences</h2>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm font-medium text-navy block mb-1.5">Employment type</label>
+          <select name="type" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5">
+            {% for t in job_types %}<option>{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-navy block mb-1.5">Work mode</label>
+          <select name="mode" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5">
+            {% for m in work_modes %}<option>{{ m }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-navy block mb-1.5">Experience level</label>
+          <select name="experience" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5">
+            {% for e in experience_levels %}<option>{{ e }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label class="text-sm font-medium text-navy block mb-1.5">Key skills <span class="text-ink/40 font-normal">(comma separated)</span></label>
+          <input name="skills" type="text" placeholder="React, TypeScript, Figma" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div data-step="3" class="hidden">
+      <h2 class="font-display font-semibold text-lg text-navy mb-1">Choose your advertisement package</h2>
+      <p class="text-sm text-ink/50 mb-5">Pay once. Keep your job live for 30 days.</p>
+      <div class="grid sm:grid-cols-2 gap-4" id="package-picker">
+        {% for p in [{'id':'basic','name':'Basic','price':19},{'id':'featured','name':'Featured','price':39},{'id':'urgent','name':'Urgent','price':69},{'id':'premium','name':'Premium','price':129}] %}
+        <label class="border-2 border-grey-line rounded-2xl p-4 cursor-pointer flex items-start justify-between package-option" data-package="{{ p.id }}">
+          <div>
+            <p class="font-display font-semibold text-navy">{{ p.name }}</p>
+            <p class="text-xs text-ink/50 mt-0.5">30 days live</p>
+          </div>
+          <div class="text-right">
+            <p class="font-display font-bold text-navy">${{ p.price }}</p>
+            <input type="radio" name="package" value="{{ p.id }}" class="mt-2 accent-indigo" {{ 'checked' if p.id=='featured' else '' }}>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div data-step="4" class="hidden">
+      <h2 class="font-display font-semibold text-lg text-navy mb-5">Payment</h2>
+      <div class="bg-cream-dim rounded-xl p-4 mb-5 flex items-center justify-between">
+        <span class="text-sm text-ink/60">Total due today</span>
+        <span class="font-display font-bold text-lg text-navy" id="payment-total">$39</span>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="sm:col-span-2">
+          <label class="text-sm font-medium text-navy block mb-1.5">Name on card</label>
+          <input type="text" placeholder="Jamie Carter" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="text-sm font-medium text-navy block mb-1.5">Card number</label>
+          <input type="text" placeholder="4242 4242 4242 4242" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+        </div>
+        <div>
+          <label class="text-sm font-medium text-navy block mb-1.5">Expiry</label>
+          <input type="text" placeholder="MM/YY" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+        </div>
+        <div>
+          <label class="text-sm font-medium text-navy block mb-1.5">CVV</label>
+          <input type="text" placeholder="123" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+        </div>
+      </div>
+      <p class="text-xs text-ink/40 mt-4 flex items-center gap-1.5"><i data-lucide="lock" class="w-3.5 h-3.5"></i>This is a simulated checkout for demo purposes. No real payment is processed.</p>
+    </div>
+
+    <!-- Nav -->
+    <div class="flex items-center justify-between mt-8 pt-6 border-t border-grey-line">
+      <button type="button" id="wizard-back" class="btn btn-outline">Back</button>
+      <button type="button" id="wizard-next" class="btn btn-primary">Continue</button>
+      <button type="button" id="wizard-submit" class="btn btn-accent hidden">Publish Job</button>
+    </div>
+  </form>
+</div>
+
+<!-- Success -->
+<div class="nx-overlay" id="publish-success-overlay"></div>
+<div class="nx-modal card p-10 text-center" id="publish-success">
+  <div class="w-14 h-14 rounded-full bg-mint-soft flex items-center justify-center mx-auto mb-4">
+    <i data-lucide="check-circle-2" class="w-7 h-7" style="color:#0E7A64"></i>
+  </div>
+  <h3 class="font-display font-semibold text-lg text-navy">Your job is live.</h3>
+  <p class="text-sm text-ink/60 mt-1.5 max-w-xs mx-auto">Candidates can now find and apply to your role from Find Jobs.</p>
+  <a href="/dashboard/employer" class="btn btn-primary mt-6">Go to Dashboard</a>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/employer.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Pricing — NEXORA for Employers{% endblock %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto px-5 md:px-8 py-14 md:py-20 text-center">
+  <span class="icon-badge icon-badge-mint w-12 h-12 mx-auto mb-4"><i data-lucide="tag" class="w-6 h-6"></i></span>
+  <h1 class="font-display text-3xl md:text-4xl font-bold text-cream tracking-tight">Simple pricing for every hire</h1>
+  <p class="mt-3 text-cream/60 max-w-lg mx-auto">Pay once. Keep your job live for 30 days. No subscriptions, no surprise fees.</p>
+  <p class="text-xs text-cream/35 mt-2">Prototype launch pricing — figures are placeholders, not proven market pricing.</p>
+</div>
+
+<div class="max-w-6xl mx-auto px-5 md:px-8 pb-20">
+  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    {% for p in packages %}
+    <div class="card {{ 'ring-2 ring-indigo relative lg:-translate-y-2' if p.id == 'featured' else '' }} p-6 flex flex-col">
+      {% if p.id == 'featured' %}
+      <span class="absolute -top-3 left-1/2 -translate-x-1/2 chip chip-indigo">Most popular</span>
+      {% endif %}
+      <p class="font-display font-semibold text-navy">{{ p.name }}</p>
+      <p class="text-xs text-ink/50 mt-1 mb-4">{{ p.tagline }}</p>
+      <p class="font-display text-3xl font-bold text-navy mb-1">${{ p.price }}<span class="text-sm font-normal text-ink/40"> AUD</span></p>
+      <p class="text-xs text-ink/40 mb-5">per job / 30 days</p>
+      <ul class="space-y-2.5 mb-6 flex-1">
+        {% for f in p.features %}
+        <li class="flex items-start gap-2 text-sm text-ink/70"><i data-lucide="check" class="w-4 h-4 text-mint mt-0.5 shrink-0"></i>{{ f }}</li>
+        {% endfor %}
+      </ul>
+      <a href="{{ url_for('checkout', package=p.id) }}" class="btn {{ 'btn-accent' if p.id == 'featured' else 'btn-outline' }} w-full">Select {{ p.name }}</a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="mt-10 bg-white border border-grey-line rounded-2xl p-6 flex items-center gap-3 justify-center">
+    <i data-lucide="badge-check" class="w-5 h-5 text-mint shrink-0" style="color:#0E7A64"></i>
+    <p class="text-sm text-ink/60">Pay once. Keep your job live for 30 days — no recurring charges.</p>
+  </div>
+</div>
+
+{% endblock %}

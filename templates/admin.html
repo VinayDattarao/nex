@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — NEXORA{% endblock %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto px-5 md:px-8 py-8 md:py-10">
+  <div class="mb-8 flex items-center gap-3">
+    <span class="icon-badge icon-badge-rose w-11 h-11"><i data-lucide="shield-check" class="w-5 h-5"></i></span>
+    <div>
+      <h1 class="font-display text-2xl md:text-3xl font-bold text-cream tracking-tight">Marketplace overview</h1>
+      <p class="text-sm text-cream/50 mt-1">Platform health, moderation queue and revenue.</p>
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
+    <div class="card p-5">
+      <span class="icon-badge icon-badge-indigo w-9 h-9 mb-2"><i data-lucide="users" class="w-4 h-4"></i></span>
+      <p class="text-xs font-semibold text-ink/40 mb-1">Total Users</p>
+      <p class="font-display text-2xl font-bold text-navy" data-counter="{{ stats.total_users }}">0</p>
+    </div>
+    <div class="card p-5">
+      <span class="icon-badge icon-badge-mint w-9 h-9 mb-2"><i data-lucide="building-2" class="w-4 h-4"></i></span>
+      <p class="text-xs font-semibold text-ink/40 mb-1">Employers</p>
+      <p class="font-display text-2xl font-bold text-navy" data-counter="{{ stats.employers }}">0</p>
+    </div>
+    <div class="card p-5">
+      <span class="icon-badge icon-badge-amber w-9 h-9 mb-2"><i data-lucide="briefcase" class="w-4 h-4"></i></span>
+      <p class="text-xs font-semibold text-ink/40 mb-1">Active Jobs</p>
+      <p class="font-display text-2xl font-bold text-navy" data-counter="{{ live_jobs|length }}">0</p>
+    </div>
+    <div class="card p-5">
+      <span class="icon-badge icon-badge-rose w-9 h-9 mb-2"><i data-lucide="send" class="w-4 h-4"></i></span>
+      <p class="text-xs font-semibold text-ink/40 mb-1">Applications</p>
+      <p class="font-display text-2xl font-bold text-navy" data-counter="{{ all_jobs|sum(attribute='applications_count') }}">0</p>
+    </div>
+    <div class="card p-5">
+      <span class="icon-badge icon-badge-indigo w-9 h-9 mb-2"><i data-lucide="dollar-sign" class="w-4 h-4"></i></span>
+      <p class="text-xs font-semibold text-ink/40 mb-1">Revenue (mo.)</p>
+      <p class="font-display text-2xl font-bold text-navy" data-counter="{{ revenue }}" data-prefix="$">$0</p>
+    </div>
+  </div>
+
+  <div class="grid lg:grid-cols-[1fr_320px] gap-8">
+    <div id="jobs">
+      <!-- Moderation -->
+      <div class="card p-0 overflow-hidden mb-8">
+        <div class="p-6 border-b border-grey-line flex items-center justify-between flex-wrap gap-3">
+          <h2 class="font-display font-semibold text-lg text-navy">Job moderation</h2>
+          <div class="flex gap-1 bg-cream-dim rounded-full p-1 text-xs font-medium" id="moderation-tabs">
+            <button class="px-3 py-1.5 rounded-full moderation-tab active" data-filter="all">All</button>
+            <button class="px-3 py-1.5 rounded-full moderation-tab" data-filter="Pending">Pending</button>
+            <button class="px-3 py-1.5 rounded-full moderation-tab" data-filter="Approved">Approved</button>
+            <button class="px-3 py-1.5 rounded-full moderation-tab" data-filter="Rejected">Rejected</button>
+          </div>
+        </div>
+        <table class="nx-table w-full nx-table-desktop">
+          <thead><tr><th>Job title</th><th>Employer</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="moderation-tbody">
+            {% for job in all_jobs %}
+            <tr data-job-row="{{ job.id }}" data-status="{{ job.status }}">
+              <td class="font-medium text-navy">{{ job.title }}</td>
+              <td class="text-ink/60">{{ job.company }}</td>
+              <td>
+                <span class="chip {{ 'chip-mint' if job.status=='Approved' else ('chip-rose' if job.status in ('Rejected','Suspended') else '') }}" data-status-chip="{{ job.id }}">{{ job.status }}</span>
+              </td>
+              <td>
+                <div class="flex gap-1.5 flex-wrap">
+                  <button class="btn btn-outline btn-sm !py-1" onclick="moderate({{ job.id }}, 'approve')">Approve</button>
+                  <button class="btn btn-outline btn-sm !py-1" onclick="moderate({{ job.id }}, 'reject')">Reject</button>
+                  <button class="btn btn-ghost btn-sm !py-1" onclick="moderate({{ job.id }}, 'review')">Review</button>
+                  <button class="btn btn-ghost btn-sm !py-1 text-rose" onclick="moderate({{ job.id }}, 'suspend')">Suspend</button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="nx-table-mobile p-4 flex flex-col gap-3" id="moderation-mobile-list">
+          {% for job in all_jobs %}
+          <div class="border border-grey-line rounded-xl p-4" data-job-row-mobile="{{ job.id }}" data-status="{{ job.status }}">
+            <div class="flex items-center justify-between mb-2">
+              <p class="font-medium text-navy text-sm">{{ job.title }}</p>
+              <span class="chip {{ 'chip-mint' if job.status=='Approved' else ('chip-rose' if job.status in ('Rejected','Suspended') else '') }}" data-status-chip-mobile="{{ job.id }}">{{ job.status }}</span>
+            </div>
+            <p class="text-xs text-ink/50 mb-3">{{ job.company }}</p>
+            <div class="flex gap-1.5 flex-wrap">
+              <button class="btn btn-outline btn-sm !py-1" onclick="moderate({{ job.id }}, 'approve')">Approve</button>
+              <button class="btn btn-outline btn-sm !py-1" onclick="moderate({{ job.id }}, 'reject')">Reject</button>
+              <button class="btn btn-ghost btn-sm !py-1" onclick="moderate({{ job.id }}, 'review')">Review</button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Revenue -->
+      <div class="card p-6 md:p-7">
+        <h2 class="font-display font-semibold text-lg text-navy mb-1">Revenue trend</h2>
+        <p class="text-xs text-ink/40 mb-6">Advertisement package revenue, last 6 months (mock data)</p>
+        <div class="flex items-end gap-4 h-40">
+          {% for m, v in [('Apr',9200),('May',11400),('Jun',13800),('Jul',15100),('Aug',16700),('Sep',18420)] %}
+          <div class="flex-1 flex flex-col items-center gap-2">
+            <div class="w-full rounded-t-lg bg-indigo/15 relative flex items-end" style="height:100%">
+              <div class="w-full rounded-t-lg bg-gradient-to-t from-indigo to-mint" style="height:{{ (v/18420*100)|round|int }}%"></div>
+            </div>
+            <span class="text-xs text-ink/40">{{ m }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Reports sidebar -->
+    <div class="space-y-6" id="reports">
+      <div class="card p-6">
+        <h3 class="font-display font-semibold text-navy text-sm mb-4">Recent reports</h3>
+        <div class="flex flex-col gap-4">
+          {% for r in reports %}
+          <div class="pb-4 border-b border-grey-line last:border-0 last:pb-0" data-report-row="{{ r.id }}">
+            <div class="flex items-center justify-between mb-1">
+              <span class="chip">{{ r.type }}</span>
+              <span class="text-xs font-medium {{ 'text-mint' if r.status=='Resolved' else 'text-rose' }}" data-report-status="{{ r.id }}" style="{{ 'color:#0E7A64' if r.status=='Resolved' else '' }}">{{ r.status }}</span>
+            </div>
+            <p class="text-sm text-navy font-medium">{{ r.target }}</p>
+            <p class="text-xs text-ink/50 mt-0.5">{{ r.reason }}</p>
+            {% if r.status == 'Open' %}
+            <button class="btn btn-outline btn-sm !py-1 mt-2" onclick="resolveReport({{ r.id }})">Mark resolved</button>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="font-display font-semibold text-navy text-sm mb-3">Platform activity</h3>
+        <ul class="space-y-3 text-sm text-ink/60">
+          <li class="flex items-start gap-2"><i data-lucide="briefcase" class="w-4 h-4 text-indigo mt-0.5"></i>{{ live_jobs|length }} jobs currently live</li>
+          <li class="flex items-start gap-2"><i data-lucide="clock" class="w-4 h-4 text-navy mt-0.5"></i>{{ pending_jobs|length }} awaiting review</li>
+          <li class="flex items-start gap-2"><i data-lucide="flag" class="w-4 h-4 text-rose mt-0.5"></i>{{ reports|selectattr('status','equalto','Open')|list|length }} open reports</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Sign In — NEXORA{% endblock %}
+{% block content %}
+
+<div class="min-h-[calc(100vh-16rem)] flex items-center justify-center px-5 py-12">
+  <div class="w-full max-w-md">
+
+    <!-- Special Context Message Alert -->
+    {% if msg == 'not_logged_in' or request.args.get('msg') == 'not_logged_in' %}
+    <div id="auth-alert-banner" class="mb-6 p-4 rounded-2xl bg-amber/15 border border-amber/30 text-cream flex items-start gap-3.5 shadow-lg animate-pulse">
+      <span class="icon-badge icon-badge-amber w-8 h-8 shrink-0 mt-0.5">
+        <i data-lucide="alert-circle" class="w-4 h-4 text-amber"></i>
+      </span>
+      <div class="text-sm">
+        <p class="font-display font-semibold text-amber text-base leading-snug">Oops! You are not logged in!</p>
+        <p class="text-cream/80 mt-1">Please sign in to apply for this job and track your applications. New to NEXORA? <a href="{{ url_for('register', redirect=redirect_url) }}" class="text-mint font-semibold underline hover:text-white ml-1">Create an account here &rarr;</a></p>
+      </div>
+    </div>
+    {% elif msg == 'employer_required' or request.args.get('msg') == 'employer_required' %}
+    <div class="mb-6 p-4 rounded-2xl bg-indigo/15 border border-indigo/30 text-cream flex items-start gap-3.5 shadow-lg">
+      <span class="icon-badge icon-badge-indigo w-8 h-8 shrink-0 mt-0.5">
+        <i data-lucide="briefcase" class="w-4 h-4 text-indigo"></i>
+      </span>
+      <div class="text-sm">
+        <p class="font-display font-semibold text-white text-base leading-snug">Employer Access Required</p>
+        <p class="text-cream/80 mt-1">Please sign in with your Employer account to access dashboard tools, post jobs, or manage applicants.</p>
+      </div>
+    </div>
+    {% elif error %}
+    <div class="mb-6 p-4 rounded-2xl bg-rose/15 border border-rose/30 text-cream flex items-start gap-3.5 shadow-lg">
+      <span class="icon-badge icon-badge-rose w-8 h-8 shrink-0 mt-0.5">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-rose"></i>
+      </span>
+      <div class="text-sm">
+        <p class="font-display font-semibold text-rose text-base leading-snug">Sign In Failed</p>
+        <p class="text-cream/80 mt-1">{{ error }}</p>
+      </div>
+    </div>
+    {% elif request.args.get('registered') %}
+    <div class="mb-6 p-4 rounded-2xl bg-mint/15 border border-mint/30 text-cream flex items-start gap-3.5 shadow-lg">
+      <span class="icon-badge icon-badge-mint w-8 h-8 shrink-0 mt-0.5">
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-mint"></i>
+      </span>
+      <div class="text-sm">
+        <p class="font-display font-semibold text-mint text-base leading-snug">Registration Successful!</p>
+        <p class="text-cream/80 mt-1">Your account has been created. Please sign in to continue.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card p-7 sm:p-9 shadow-2xl">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo/10 border border-indigo/20 text-indigo mb-3">
+          <i data-lucide="log-in" class="w-6 h-6"></i>
+        </div>
+        <h1 class="font-display text-2xl sm:text-3xl font-bold text-navy tracking-tight">Welcome back</h1>
+        <p class="text-sm text-ink/60 mt-1">Sign in to your NEXORA account</p>
+      </div>
+
+      <!-- Quick Demo Account Pills -->
+      <div class="mb-6 p-3.5 rounded-xl bg-cream-dim border border-grey-line">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold text-ink/50 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="zap" class="w-3.5 h-3.5 text-amber"></i> Quick Demo Logins
+          </span>
+          <span class="text-[11px] text-ink/40">1-click fill</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="fillDemo('jordan@nexora.com', 'password123')" class="px-2.5 py-1.5 text-xs font-medium text-navy bg-white hover:bg-indigo/5 border border-grey-line rounded-lg flex items-center justify-center gap-1.5 transition-colors">
+            <span class="w-2 h-2 rounded-full bg-indigo"></span> Job Seeker
+          </button>
+          <button type="button" onclick="fillDemo('hiring@northlane.com', 'password123')" class="px-2.5 py-1.5 text-xs font-medium text-navy bg-white hover:bg-mint/10 border border-grey-line rounded-lg flex items-center justify-center gap-1.5 transition-colors">
+            <span class="w-2 h-2 rounded-full bg-mint" style="background:#0E9D85"></span> Employer
+          </button>
+        </div>
+      </div>
+
+      <form action="{{ url_for('login') }}" method="POST" class="space-y-4" id="login-form">
+        <input type="hidden" name="redirect" value="{{ redirect_url or '' }}">
+
+        <div>
+          <label class="block text-sm font-semibold text-navy mb-1.5" for="email">Email address</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-grey">
+              <i data-lucide="mail" class="w-4 h-4"></i>
+            </div>
+            <input id="email" name="email" type="email" required autocomplete="email" value="{{ email or '' }}"
+              placeholder="you@example.com"
+              class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-grey-line rounded-xl outline-none focus:border-indigo focus:ring-2 focus:ring-indigo/20 transition-all text-navy placeholder:text-grey">
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-sm font-semibold text-navy" for="password">Password</label>
+            <span class="text-xs text-ink/40">Min. 6 characters</span>
+          </div>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-grey">
+              <i data-lucide="lock" class="w-4 h-4"></i>
+            </div>
+            <input id="password" name="password" type="password" required autocomplete="current-password"
+              placeholder="••••••••"
+              class="w-full pl-10 pr-10 py-2.5 text-sm border border-grey-line rounded-xl outline-none focus:border-indigo focus:ring-2 focus:ring-indigo/20 transition-all text-navy placeholder:text-grey">
+            <button type="button" onclick="togglePasswordVisibility('password', this)" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-grey hover:text-navy">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" class="btn btn-primary w-full py-3 text-base font-semibold shadow-lg shadow-indigo/25">
+            <i data-lucide="log-in" class="w-4 h-4"></i> Sign In to Account
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-8 pt-6 border-t border-grey-line text-center text-sm text-ink/60">
+        Don't have an account yet?
+        <a href="{{ url_for('register', redirect=redirect_url) }}" class="font-semibold text-indigo hover:text-indigo-dark ml-1 underline">
+          Create an account
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function fillDemo(email, password) {
+  document.getElementById('email').value = email;
+  document.getElementById('password').value = password;
+}
+
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerHTML = '<i data-lucide="eye-off" class="w-4 h-4"></i>';
+  } else {
+    input.type = 'password';
+    btn.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i>';
+  }
+  if (window.lucide) lucide.createIcons();
+}
+</script>
+
+{% endblock %}

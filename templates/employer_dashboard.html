@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% block title %}Employer Dashboard — NEXORA{% endblock %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto px-5 md:px-8 py-8 md:py-10">
+  <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
+    <div class="flex items-center gap-3">
+      <span class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-display font-bold" style="background:{{ employer.color }}">{{ employer.initials }}</span>
+      <div>
+        <h1 class="font-display text-2xl md:text-3xl font-bold text-cream tracking-tight">{{ employer.company }}</h1>
+        <p class="text-sm text-cream/50">Employer dashboard</p>
+      </div>
+    </div>
+    <a href="{{ url_for('post_job') }}" class="btn btn-accent"><i data-lucide="plus" class="w-4 h-4"></i>Post a Job</a>
+  </div>
+
+  <!-- Metrics -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+    <div class="card p-5">
+      <span class="icon-badge icon-badge-indigo w-9 h-9 mb-3"><i data-lucide="briefcase" class="w-4 h-4"></i></span>
+      <p class="text-xs font-semibold text-ink/40 mb-1">Active Jobs</p>
+      <p class="font-display text-2xl font-bold text-navy" data-counter="{{ my_jobs|length }}">0</p>
+    </div>
+    <div class="card p-5">
+      <span class="icon-badge icon-badge-mint w-9 h-9 mb-3"><i data-lucide="send" class="w-4 h-4"></i></span>
+      <p class="text-xs font-semibold text-ink/40 mb-1">Applications</p>
+      <p class="font-display text-2xl font-bold text-navy" data-counter="{{ total_apps }}">0</p>
+    </div>
+    <div class="card p-5">
+      <span class="icon-badge icon-badge-amber w-9 h-9 mb-3"><i data-lucide="eye" class="w-4 h-4"></i></span>
+      <p class="text-xs font-semibold text-ink/40 mb-1">Views</p>
+      <p class="font-display text-2xl font-bold text-navy" data-counter="{{ total_views }}">0</p>
+    </div>
+    <div class="card p-5">
+      <span class="icon-badge icon-badge-rose w-9 h-9 mb-3"><i data-lucide="star" class="w-4 h-4"></i></span>
+      <p class="text-xs font-semibold text-ink/40 mb-1">Shortlisted</p>
+      <p class="font-display text-2xl font-bold text-navy" data-counter="{{ shortlisted }}">0</p>
+    </div>
+  </div>
+
+  <div class="grid lg:grid-cols-[1fr_320px] gap-8">
+    <div id="jobs">
+      <div class="card p-0 overflow-hidden mb-8">
+        <div class="p-6 border-b border-grey-line flex items-center justify-between">
+          <h2 class="font-display font-semibold text-lg text-navy">Job performance &amp; management</h2>
+        </div>
+        {% if my_jobs %}
+        <table class="nx-table w-full nx-table-desktop">
+          <thead><tr><th>Job title</th><th>Status</th><th>Views</th><th>Applications</th><th>Posted</th><th class="text-right">Actions</th></tr></thead>
+          <tbody>
+            {% for job in my_jobs %}
+            <tr id="job-row-{{ job.id }}">
+              <td>
+                <a href="{{ url_for('job_details', job_id=job.id) }}" class="font-medium text-navy hover:text-indigo block">{{ job.title }}</a>
+                <span class="text-xs text-ink/40">{{ job.location }} · {{ job.type }}</span>
+              </td>
+              <td>
+                {% if job.status == 'Approved' %}<span class="chip chip-mint">Live</span>
+                {% elif job.status == 'Pending' %}<span class="chip">Pending review</span>
+                {% elif job.status == 'Draft' %}<span class="chip">Draft</span>
+                {% else %}<span class="chip chip-rose">{{ job.status }}</span>{% endif %}
+              </td>
+              <td>{{ job.views }}</td>
+              <td>{{ job.applications_count }}</td>
+              <td class="text-ink/50">{{ job.posted_days_ago }}d ago</td>
+              <td class="text-right">
+                <div class="flex items-center justify-end gap-1.5">
+                  <button onclick="openEditJobModal({{ job|tojson|forceescape }})" class="btn btn-outline btn-sm !px-2.5 !py-1 text-xs" title="Edit Job Details">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit
+                  </button>
+                  <select onchange="updateJobStatus({{ job.id }}, this.value)" class="text-xs border border-grey-line rounded-lg px-2 py-1 bg-white outline-none cursor-pointer">
+                    <option value="Approved" {{ 'selected' if job.status=='Approved' else '' }}>Live</option>
+                    <option value="Draft" {{ 'selected' if job.status=='Draft' else '' }}>Draft</option>
+                    <option value="Pending" {{ 'selected' if job.status=='Pending' else '' }}>Review</option>
+                    <option value="Closed" {{ 'selected' if job.status=='Closed' else '' }}>Closed</option>
+                  </select>
+                  <button onclick="deleteEmployerJob({{ job.id }}, '{{ job.title|replace('\'', '\\\'') }}')" class="btn btn-ghost btn-sm !px-2 text-rose hover:bg-rose/10" title="Delete Job">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <!-- Mobile Table Cards -->
+        <div class="nx-table-mobile p-4 flex flex-col gap-3">
+          {% for job in my_jobs %}
+          <div class="border border-grey-line rounded-xl p-4 bg-white" id="job-card-mobile-{{ job.id }}">
+            <div class="flex items-center justify-between mb-2">
+              <a href="{{ url_for('job_details', job_id=job.id) }}" class="font-medium text-navy text-sm">{{ job.title }}</a>
+              {% if job.status == 'Approved' %}<span class="chip chip-mint">Live</span>
+              {% elif job.status == 'Pending' %}<span class="chip">Pending</span>
+              {% elif job.status == 'Draft' %}<span class="chip">Draft</span>
+              {% else %}<span class="chip chip-rose">{{ job.status }}</span>{% endif %}
+            </div>
+            <div class="flex gap-4 text-xs text-ink/50 mb-3">
+              <span>{{ job.views }} views</span>
+              <span>{{ job.applications_count }} applications</span>
+              <span>{{ job.posted_days_ago }}d ago</span>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-grey-line">
+              <button onclick="openEditJobModal({{ job|tojson|forceescape }})" class="btn btn-outline btn-sm !py-1 text-xs">
+                <i data-lucide="edit-3" class="w-3 h-3"></i> Edit
+              </button>
+              <div class="flex items-center gap-1.5">
+                <select onchange="updateJobStatus({{ job.id }}, this.value)" class="text-xs border border-grey-line rounded-lg px-2 py-1 bg-white">
+                  <option value="Approved" {{ 'selected' if job.status=='Approved' else '' }}>Live</option>
+                  <option value="Draft" {{ 'selected' if job.status=='Draft' else '' }}>Draft</option>
+                  <option value="Closed" {{ 'selected' if job.status=='Closed' else '' }}>Closed</option>
+                </select>
+                <button onclick="deleteEmployerJob({{ job.id }}, '{{ job.title|replace('\'', '\\\'') }}')" class="btn btn-ghost btn-sm !px-2 text-rose">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-14">
+          <i data-lucide="briefcase" class="w-8 h-8 text-grey mx-auto mb-3"></i>
+          <p class="font-display font-semibold text-navy">Ready to find your next hire?</p>
+          <a href="{{ url_for('post_job') }}" class="btn btn-outline btn-sm mt-4 inline-flex"><i data-lucide="plus" class="w-3.5 h-3.5"></i>Post a job</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-display font-semibold text-navy text-sm">Recent applicants</h3>
+          <a href="{{ url_for('applicants') }}" class="text-xs font-semibold text-indigo hover:text-indigo-dark">View all</a>
+        </div>
+        <div class="flex flex-col gap-3">
+          {% for c in recent_applicants %}
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-full bg-cream-dim text-navy flex items-center justify-center text-xs font-bold shrink-0">{{ c.avatar_initials }}</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-navy truncate">{{ c.name }}</p>
+              <p class="text-xs text-ink/50 truncate">{{ c.job_title }}</p>
+            </div>
+            <span class="chip shrink-0">{{ c.stage }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="rounded-2xl p-6 text-cream border border-white/10 relative overflow-hidden" style="background:linear-gradient(135deg, var(--indigo-dark) 0%, var(--navy-elevated) 70%)">
+        <span class="icon-badge icon-badge-mint icon-float w-10 h-10 absolute top-4 right-4" style="background:rgba(43,224,190,0.2)"><i data-lucide="trending-up" class="w-5 h-5"></i></span>
+        <h3 class="font-display font-semibold mb-2">Boost your reach</h3>
+        <p class="text-sm text-cream/60 mb-4 max-w-[85%]">Featured jobs get up to 3x more views from candidates.</p>
+        <a href="{{ url_for('pricing') }}" class="btn bg-cream text-navy hover:bg-white btn-sm">View packages</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== EDIT JOB MODAL ==================== -->
+<div class="nx-overlay" id="edit-job-modal-overlay" onclick="closeModal('edit-job-modal')"></div>
+<div class="nx-modal card p-0 max-w-xl" id="edit-job-modal">
+  <div class="p-5 border-b border-grey-line flex items-center justify-between">
+    <h3 class="font-display font-semibold text-lg text-navy flex items-center gap-2">
+      <span class="icon-badge icon-badge-indigo w-8 h-8"><i data-lucide="edit-3" class="w-4 h-4"></i></span>
+      Edit Job Posting
+    </h3>
+    <button onclick="closeModal('edit-job-modal')" class="btn btn-ghost btn-sm !px-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+  </div>
+  
+  <form id="edit-job-form" onsubmit="submitEditJob(event)" class="p-6 space-y-4">
+    <input type="hidden" id="edit-job-id" name="job_id">
+
+    <div>
+      <label class="block text-xs font-semibold text-navy mb-1" for="edit-title">Job Title</label>
+      <input type="text" id="edit-title" name="title" required class="w-full text-sm border border-grey-line rounded-xl px-3 py-2 outline-none focus:border-indigo">
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs font-semibold text-navy mb-1" for="edit-location">Location</label>
+        <select id="edit-location" name="location" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2 bg-white">
+          {% for loc in locations %}<option value="{{ loc }}">{{ loc }}</option>{% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-navy mb-1" for="edit-industry">Industry</label>
+        <select id="edit-industry" name="industry" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2 bg-white">
+          {% for ind in industries %}<option value="{{ ind }}">{{ ind }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3">
+      <div>
+        <label class="block text-xs font-semibold text-navy mb-1" for="edit-type">Job Type</label>
+        <select id="edit-type" name="type" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2 bg-white">
+          {% for t in job_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-navy mb-1" for="edit-mode">Work Mode</label>
+        <select id="edit-mode" name="mode" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2 bg-white">
+          {% for m in work_modes %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-navy mb-1" for="edit-status">Status</label>
+        <select id="edit-status" name="status" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2 bg-white">
+          <option value="Approved">Live (Approved)</option>
+          <option value="Pending">Pending Review</option>
+          <option value="Draft">Draft</option>
+          <option value="Closed">Closed</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs font-semibold text-navy mb-1" for="edit-salary-min">Min Salary (AUD)</label>
+        <input type="number" id="edit-salary-min" name="salary_min" step="1000" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2 outline-none focus:border-indigo">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-navy mb-1" for="edit-salary-max">Max Salary (AUD)</label>
+        <input type="number" id="edit-salary-max" name="salary_max" step="1000" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2 outline-none focus:border-indigo">
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-navy mb-1" for="edit-description">Description</label>
+      <textarea id="edit-description" name="description" rows="3" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2 outline-none focus:border-indigo"></textarea>
+    </div>
+
+    <div class="pt-3 border-t border-grey-line flex items-center justify-end gap-2">
+      <button type="button" onclick="closeModal('edit-job-modal')" class="btn btn-outline btn-sm">Cancel</button>
+      <button type="submit" id="edit-submit-btn" class="btn btn-primary btn-sm">Save Changes</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openEditJobModal(job) {
+  document.getElementById('edit-job-id').value = job.id;
+  document.getElementById('edit-title').value = job.title || '';
+  document.getElementById('edit-location').value = job.location || '';
+  document.getElementById('edit-industry').value = job.industry || '';
+  document.getElementById('edit-type').value = job.type || '';
+  document.getElementById('edit-mode').value = job.mode || '';
+  document.getElementById('edit-status').value = job.status || 'Approved';
+  document.getElementById('edit-salary-min').value = job.salary_min || '';
+  document.getElementById('edit-salary-max').value = job.salary_max || '';
+  document.getElementById('edit-description').value = job.about_role || '';
+  openModal('edit-job-modal');
+  if (window.lucide) lucide.createIcons();
+}
+
+async function submitEditJob(e) {
+  e.preventDefault();
+  const btn = document.getElementById('edit-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const jobId = document.getElementById('edit-job-id').value;
+  const payload = {
+    title: document.getElementById('edit-title').value,
+    location: document.getElementById('edit-location').value,
+    industry: document.getElementById('edit-industry').value,
+    type: document.getElementById('edit-type').value,
+    mode: document.getElementById('edit-mode').value,
+    status: document.getElementById('edit-status').value,
+    salary_min: document.getElementById('edit-salary-min').value,
+    salary_max: document.getElementById('edit-salary-max').value,
+    description: document.getElementById('edit-description').value,
+  };
+
+  try {
+    const res = await fetch(`/api/employer/jobs/${jobId}/edit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast('Job updated successfully!', { icon: 'check-circle-2' });
+      closeModal('edit-job-modal');
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.message || 'Error updating job', { icon: 'alert-triangle' });
+    }
+  } catch (err) {
+    showToast('Failed to update job', { icon: 'alert-triangle' });
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+async function updateJobStatus(jobId, status) {
+  try {
+    const res = await fetch(`/api/employer/jobs/${jobId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast(`Job status set to ${status}.`, { icon: 'check-circle-2' });
+      setTimeout(() => window.location.reload(), 500);
+    }
+  } catch (e) {
+    showToast('Failed to update status', { icon: 'alert-triangle' });
+  }
+}
+
+async function deleteEmployerJob(jobId, title) {
+  if (!confirm(`Are you sure you want to delete the job listing "${title}"?`)) return;
+  try {
+    const res = await fetch(`/api/employer/jobs/${jobId}/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast('Job listing removed successfully.', { icon: 'trash-2' });
+      const row = document.getElementById(`job-row-${jobId}`);
+      if (row) row.remove();
+      setTimeout(() => window.location.reload(), 450);
+    }
+  } catch(e) {
+    showToast('Failed to delete job', { icon: 'alert-triangle' });
+  }
+}
+</script>
+{% endblock %}

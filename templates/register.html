@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Register — NEXORA{% endblock %}
+{% block content %}
+
+<div class="min-h-[calc(100vh-16rem)] flex items-center justify-center px-5 py-12">
+  <div class="w-full max-w-lg">
+
+    <!-- Special Context Alert for Post a Job / Employer registration -->
+    {% if msg == 'need_details' or request.args.get('msg') == 'need_details' %}
+    <div id="register-alert-banner" class="mb-6 p-4 rounded-2xl bg-amber/15 border border-amber/30 text-cream flex items-start gap-3.5 shadow-lg animate-pulse">
+      <span class="icon-badge icon-badge-amber w-8 h-8 shrink-0 mt-0.5">
+        <i data-lucide="building-2" class="w-4 h-4 text-amber"></i>
+      </span>
+      <div class="text-sm">
+        <p class="font-display font-semibold text-amber text-base leading-snug">Oops! We need your details! Please register.</p>
+        <p class="text-cream/80 mt-1">To post and manage jobs on NEXORA, please complete your employer registration below. Already have an account? <a href="{{ url_for('login', redirect=redirect_url) }}" class="text-mint font-semibold underline hover:text-white ml-1">Log in here &rarr;</a></p>
+      </div>
+    </div>
+    {% elif error %}
+    <div class="mb-6 p-4 rounded-2xl bg-rose/15 border border-rose/30 text-cream flex items-start gap-3.5 shadow-lg">
+      <span class="icon-badge icon-badge-rose w-8 h-8 shrink-0 mt-0.5">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-rose"></i>
+      </span>
+      <div class="text-sm">
+        <p class="font-display font-semibold text-rose text-base leading-snug">Registration Error</p>
+        <p class="text-cream/80 mt-1">{{ error }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card p-7 sm:p-9 shadow-2xl">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-mint/10 border border-mint/20 text-mint mb-3" style="color:#0E9D85">
+          <i data-lucide="user-plus" class="w-6 h-6"></i>
+        </div>
+        <h1 class="font-display text-2xl sm:text-3xl font-bold text-navy tracking-tight">Create your account</h1>
+        <p class="text-sm text-ink/60 mt-1">Join Australia's modern employment marketplace</p>
+      </div>
+
+      <form action="{{ url_for('register') }}" method="POST" class="space-y-4" id="register-form">
+        <input type="hidden" name="redirect" value="{{ redirect_url or '' }}">
+
+        <!-- Role Toggle Tabs -->
+        <div>
+          <label class="block text-xs font-semibold text-ink/50 uppercase tracking-wider mb-2">I am registering as:</label>
+          <div class="grid grid-cols-2 gap-3 p-1.5 bg-cream-dim rounded-2xl border border-grey-line">
+            <label class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl cursor-pointer text-sm font-semibold transition-all text-center select-none role-tab" id="tab-seeker">
+              <input type="radio" name="role" value="seeker" class="hidden" onchange="toggleRole('seeker')"
+                {{ 'checked' if (role != 'employer' and request.args.get('role') != 'employer' and not msg == 'need_details' and not request.args.get('msg') == 'need_details') else '' }}>
+              <i data-lucide="user" class="w-4 h-4"></i> Job Seeker
+            </label>
+
+            <label class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl cursor-pointer text-sm font-semibold transition-all text-center select-none role-tab" id="tab-employer">
+              <input type="radio" name="role" value="employer" class="hidden" onchange="toggleRole('employer')"
+                {{ 'checked' if (role == 'employer' or request.args.get('role') == 'employer' or msg == 'need_details' or request.args.get('msg') == 'need_details') else '' }}>
+              <i data-lucide="building-2" class="w-4 h-4"></i> Employer
+            </label>
+          </div>
+        </div>
+
+        <!-- Full Name -->
+        <div>
+          <label class="block text-sm font-semibold text-navy mb-1.5" for="name">
+            <span id="name-label">Full Name</span>
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-grey">
+              <i data-lucide="user" class="w-4 h-4"></i>
+            </div>
+            <input id="name" name="name" type="text" required value="{{ name or '' }}"
+              placeholder="e.g. Jordan Reyes"
+              class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-grey-line rounded-xl outline-none focus:border-indigo focus:ring-2 focus:ring-indigo/20 transition-all text-navy placeholder:text-grey">
+          </div>
+        </div>
+
+        <!-- Employer-only Fields -->
+        <div id="employer-fields" class="{{ 'hidden' if not (role == 'employer' or request.args.get('role') == 'employer' or msg == 'need_details' or request.args.get('msg') == 'need_details') else '' }} space-y-4 pt-1 border-t border-grey-line">
+          <div>
+            <label class="block text-sm font-semibold text-navy mb-1.5" for="company">Company Name <span class="text-rose">*</span></label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-grey">
+                <i data-lucide="building" class="w-4 h-4"></i>
+              </div>
+              <input id="company" name="company" type="text" value="{{ company or '' }}"
+                placeholder="e.g. Northlane Digital"
+                class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-grey-line rounded-xl outline-none focus:border-indigo focus:ring-2 focus:ring-indigo/20 transition-all text-navy placeholder:text-grey">
+            </div>
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div>
+          <label class="block text-sm font-semibold text-navy mb-1.5" for="location">Location (City, State)</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-grey">
+              <i data-lucide="map-pin" class="w-4 h-4"></i>
+            </div>
+            <select id="location" name="location" class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-grey-line rounded-xl outline-none focus:border-indigo focus:ring-2 focus:ring-indigo/20 transition-all text-navy bg-white">
+              {% for loc in locations or ["Sydney, NSW", "Melbourne, VIC", "Brisbane, QLD", "Perth, WA", "Adelaide, SA", "Canberra, ACT", "Hobart, TAS", "Darwin, NT"] %}
+              <option value="{{ loc }}" {{ 'selected' if loc == location else '' }}>{{ loc }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- Email Address -->
+        <div>
+          <label class="block text-sm font-semibold text-navy mb-1.5" for="email">Email address</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-grey">
+              <i data-lucide="mail" class="w-4 h-4"></i>
+            </div>
+            <input id="email" name="email" type="email" required autocomplete="email" value="{{ email or '' }}"
+              placeholder="you@company.com"
+              class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-grey-line rounded-xl outline-none focus:border-indigo focus:ring-2 focus:ring-indigo/20 transition-all text-navy placeholder:text-grey">
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-sm font-semibold text-navy" for="password">Password</label>
+            <span class="text-xs text-ink/40">Min. 6 characters</span>
+          </div>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-grey">
+              <i data-lucide="lock" class="w-4 h-4"></i>
+            </div>
+            <input id="password" name="password" type="password" required minlength="6" autocomplete="new-password"
+              placeholder="••••••••"
+              class="w-full pl-10 pr-10 py-2.5 text-sm border border-grey-line rounded-xl outline-none focus:border-indigo focus:ring-2 focus:ring-indigo/20 transition-all text-navy placeholder:text-grey">
+            <button type="button" onclick="togglePasswordVisibility('password', this)" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-grey hover:text-navy">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-3">
+          <button type="submit" id="submit-btn" class="btn btn-accent w-full py-3 text-base font-semibold shadow-lg shadow-mint/20">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> Complete Registration
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-8 pt-6 border-t border-grey-line text-center text-sm text-ink/60">
+        Already have an account?
+        <a href="{{ url_for('login', redirect=redirect_url) }}" class="font-semibold text-indigo hover:text-indigo-dark ml-1 underline">
+          Log in here
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleRole(role) {
+  const isEmployer = role === 'employer';
+  const employerFields = document.getElementById('employer-fields');
+  const companyInput = document.getElementById('company');
+  const tabSeeker = document.getElementById('tab-seeker');
+  const tabEmployer = document.getElementById('tab-employer');
+  const nameLabel = document.getElementById('name-label');
+  const submitBtn = document.getElementById('submit-btn');
+
+  if (isEmployer) {
+    employerFields.classList.remove('hidden');
+    companyInput.setAttribute('required', 'required');
+    tabEmployer.classList.add('bg-white', 'text-navy', 'shadow-sm');
+    tabSeeker.classList.remove('bg-white', 'text-navy', 'shadow-sm');
+    tabSeeker.classList.add('text-ink/60');
+    nameLabel.textContent = 'Contact Person Full Name';
+    submitBtn.innerHTML = '<i data-lucide="building-2" class="w-4 h-4"></i> Register as Employer';
+  } else {
+    employerFields.classList.add('hidden');
+    companyInput.removeAttribute('required');
+    tabSeeker.classList.add('bg-white', 'text-navy', 'shadow-sm');
+    tabEmployer.classList.remove('bg-white', 'text-navy', 'shadow-sm');
+    tabEmployer.classList.add('text-ink/60');
+    nameLabel.textContent = 'Full Name';
+    submitBtn.innerHTML = '<i data-lucide="user-plus" class="w-4 h-4"></i> Register as Job Seeker';
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerHTML = '<i data-lucide="eye-off" class="w-4 h-4"></i>';
+  } else {
+    input.type = 'password';
+    btn.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i>';
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+// Initialise active tab styling on load
+document.addEventListener('DOMContentLoaded', function () {
+  const isEmployer = document.querySelector('input[name="role"]:checked')?.value === 'employer';
+  toggleRole(isEmployer ? 'employer' : 'seeker');
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Checkout — NEXORA{% endblock %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto px-5 md:px-8 py-8 md:py-10">
+  <a href="{{ url_for('pricing') }}" class="inline-flex items-center gap-1.5 text-sm text-cream/60 hover:text-mint mb-6 transition-colors"><i data-lucide="arrow-left" class="w-4 h-4"></i>Back to pricing</a>
+
+  <div id="checkout-form-state" class="grid md:grid-cols-[1fr_320px] gap-8">
+    <div class="card p-6 md:p-8">
+      <h1 class="font-display text-xl font-bold text-navy mb-6">Payment details</h1>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="sm:col-span-2">
+          <label class="text-sm font-medium text-navy block mb-1.5">Name on card</label>
+          <input type="text" placeholder="Jamie Carter" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="text-sm font-medium text-navy block mb-1.5">Card number</label>
+          <input type="text" placeholder="4242 4242 4242 4242" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+        </div>
+        <div>
+          <label class="text-sm font-medium text-navy block mb-1.5">Expiry</label>
+          <input type="text" placeholder="MM/YY" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+        </div>
+        <div>
+          <label class="text-sm font-medium text-navy block mb-1.5">CVV</label>
+          <input type="text" placeholder="123" class="w-full text-sm border border-grey-line rounded-xl px-3 py-2.5 outline-none focus:border-indigo">
+        </div>
+      </div>
+      <p class="text-xs text-ink/40 mt-5 flex items-center gap-1.5"><i data-lucide="lock" class="w-3.5 h-3.5"></i>Simulated checkout for demo purposes. No real payment is processed.</p>
+      <button id="checkout-publish-btn" data-package="{{ package.id }}" class="btn btn-accent w-full mt-6">Publish Job — ${{ package.price }}</button>
+    </div>
+
+    <div class="card p-6 h-fit">
+      <h2 class="font-display font-semibold text-navy mb-4">Order summary</h2>
+      <div class="flex items-center justify-between text-sm mb-2">
+        <span class="text-ink/60">{{ package.name }} Job Ad</span>
+        <span class="font-medium text-navy">${{ package.price }}</span>
+      </div>
+      <div class="flex items-center justify-between text-sm mb-4">
+        <span class="text-ink/60">Duration</span>
+        <span class="font-medium text-navy">30 days</span>
+      </div>
+      <div class="border-t border-grey-line pt-4 flex items-center justify-between">
+        <span class="font-display font-semibold text-navy">Total</span>
+        <span class="font-display font-bold text-lg text-navy">${{ package.price }} AUD</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="checkout-success-state" class="hidden card p-10 text-center max-w-lg mx-auto">
+    <div class="w-14 h-14 rounded-full bg-mint-soft flex items-center justify-center mx-auto mb-4">
+      <i data-lucide="check-circle-2" class="w-7 h-7" style="color:#0E7A64"></i>
+    </div>
+    <h3 class="font-display font-semibold text-lg text-navy">Your job is live.</h3>
+    <p class="text-sm text-ink/60 mt-1.5">Your {{ package.name.lower() }} listing is now visible to candidates for the next 30 days.</p>
+    <a href="/dashboard/employer" class="btn btn-primary mt-6">Go to Dashboard</a>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/employer.js') }}"></script>
+{% endblock %}
